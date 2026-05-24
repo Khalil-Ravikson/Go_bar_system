@@ -36,3 +36,27 @@ class SyncOutbox extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+// ==========================================
+// NOVAS TABELAS (CATÁLOGO DINÂMICO)
+// ==========================================
+
+class Categories extends Table {
+  TextColumn get id => text()(); // UUIDv7
+  TextColumn get tenantId => text()();
+  TextColumn get name => text()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Products extends Table {
+  TextColumn get id => text()(); // UUIDv7
+  TextColumn get tenantId => text()();
+  TextColumn get categoryId => text().references(Categories, #id)();
+  TextColumn get name => text()();
+  IntColumn get currentPrice => integer()(); // Preço salvo em centavos (ex: R$ 22,00 = 2200)
+  BoolColumn get isAvailable => boolean().withDefault(const Constant(true))();
+  @override
+  Set<Column> get primaryKey => {id};
+}

@@ -23,41 +23,47 @@ class WebSocketService {
   WebSocketService(this.ref);
 
   Future<void> connect() async {
-    if (_isDisposed) return;
+  if (_isDisposed) return;
 
-    // Muda a UI para Laranja (Sincronizando...)
-    ref.read(connectionStatusProvider.notifier).state = WebSocketStatus.connecting;
-    print('🌐 Tentando conectar ao WebSocket...');
+  // 1. Coloca a UI instantaneamente em modo "connecting" (Laranja)
+  ref.read(connectionStatusProvider.notifier).state = WebSocketStatus.connecting;
+  print('⏳ Aguardando 8 segundos regulamentares antes de iniciar o handshake...');
 
-    try {
-      final uri = Uri.parse('ws://localhost:8080/ws');
-      channel = WebSocketChannel.connect(uri);
+  // 2. O PULO DO GATO: Força o estado de sincronização visual a segurar por 8 segundos
+  await Future.delayed(const Duration(seconds: 8));
 
-      // O Pulo do Gato: Espera a conexão REALMENTE se estabelecer antes de ficar verde!
-      await channel!.ready; 
+  if (_isDisposed) return;
+  print('🌐 Iniciando conexão real com o servidor Go...');
 
-      _retryCount = 0; // Reseta o contador após sucesso
-      ref.read(connectionStatusProvider.notifier).state = WebSocketStatus.online;
-      print('✅ Conectado ao WebSocket!');
+  try {
+    final uri = Uri.parse('ws://localhost:8080/ws');
+    channel = WebSocketChannel.connect(uri);
 
-      channel!.stream.listen(
-        (message) {
-          print('📩 Mensagem recebida: $message');
-        },
-        onError: (error) {
-          print('❌ Erro no WebSocket: $error');
-          _handleDisconnect();
-        },
-        onDone: () {
-          print('⚠️ Conexão encerrada pelo servidor.');
-          _handleDisconnect();
-        },
-      );
-    } catch (e) {
-      print('❌ Falha na conexão: $e');
-      _handleDisconnect();
-    }
+    // Espera a conexão TCP se estabelecer de verdade
+    await channel!.ready; 
+
+    _retryCount = 0;
+    ref.read(connectionStatusProvider.notifier).state = WebSocketStatus.online;
+    print('✅ Conectado com sucesso ao WebSocket!');
+
+    channel!.stream.listen(
+      (message) {
+        print('📩 Mensagem recebida: $message');
+      },
+      onError: (error) {
+        print('❌ Erro no WebSocket: $error');
+        _handleDisconnect();
+      },
+      onDone: () {
+        print('⚠️ Conexão encerrada pelo servidor.');
+        _handleDisconnect();
+      },
+    );
+  } catch (e) {
+    print('❌ Falha na conexão real: $e');
+    _handleDisconnect();
   }
+}
 
   void _handleDisconnect() {
     ref.read(connectionStatusProvider.notifier).state = WebSocketStatus.offline;

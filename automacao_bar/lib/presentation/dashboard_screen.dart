@@ -1,132 +1,75 @@
-import 'package:automacao_bar/core/network/websocket_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers/ui_settings_provider.dart';
-import '../../../features/orders/presentation/order_details_screen.dart';
-import '../../../presentation/components/connection_status_indicator.dart';
-import '../../../presentation/components/finance_header.dart';
-import '../../../presentation/components/resto_card.dart';
-import '../../../presentation/theme/app_colors.dart';
-import '../../../core/database/database_provider.dart';
-import '../features/settings/presentation/settings_general_screen.dart';
 
-class DashboardScreen extends ConsumerStatefulWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
-  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = [
-    const DashboardContent(),
-    const SettingsGeneralScreen(),
-  ];
-  
-  @override
-  void initState() {
-    super.initState();
-    // Inicia a conexão de tempo real assim que o Dashboard nasce
-    // O Future.microtask garante que o Riverpod já está pronto
-    Future.microtask(() => ref.read(webSocketServiceProvider).connect());
-  }
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primaryNeon,
-        unselectedItemColor: AppColors.textSecondary,
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.table_restaurant), label: 'Mesas'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Configurações'),
-        ],
-      ),
-    );
-  }
-}
-  
-// Extraímos o conteúdo do Dashboard para este Widget separado
-class DashboardContent extends ConsumerWidget {
-  const DashboardContent({super.key});
-
-
-
-
-
-
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ordersAsyncValue = ref.watch(openOrdersProvider);
-    final currentGridSize = ref.watch(gridItemSizeProvider);
-
-
-    // 1. Escuta o status de conexão em tempo real!
-    
-    final connectionStatus = ref.watch(connectionStatusProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        title: const Text('Dashboard Operacional', style: TextStyle(color: Colors.white)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            // 2. Passa o status real para o indicador
-            child: ConnectionStatusIndicator(status: connectionStatus ),
-          ),
-        ],
+        title: const Text('Visão Geral', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: Column(
-        children: [
-          const FinanceHeader(),
-          Expanded(
-            child: ordersAsyncValue.when(
-              data: (orders) {
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: currentGridSize,
-                  ),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    final isBusy = order.status == 'OPEN';
-                    return RestoCard(
-                      title: 'Mesa ${order.tableNumber}',
-                      subtitle: isBusy ? 'Em atendimento' : 'Livre',
-                      status: isBusy ? 'Ocupada' : 'Livre',
-                      statusColor: isBusy ? AppColors.primaryOrange : AppColors.primaryNeon,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => OrderDetailsScreen(
-                              orderId: order.id,
-                              tableNumber: order.tableNumber,
-                            ),
-                          ),
-                        );
-                      }, syncStatus: 'SYNCED',
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon)),
-              error: (err, _) => Center(child: Text('Erro: $err', style: const TextStyle(color: AppColors.error))),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.1,
+        ),
+        itemCount: 10, // Mesas de exemplo
+        itemBuilder: (context, index) {
+          // Lógica fake para visualização: Mesa par está ocupada, ímpar está livre
+          final isOccupied = index % 2 == 0; 
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isOccupied ? colorScheme.secondary : Colors.grey.withOpacity(0.2),
+                width: isOccupied ? 2 : 1,
+              ),
+              boxShadow: isOccupied 
+                ? [BoxShadow(color: colorScheme.secondary.withOpacity(0.3), blurRadius: 8, spreadRadius: 1)]
+                : [],
             ),
-          ),
-        ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.table_restaurant, 
+                  size: 40, 
+                  color: isOccupied ? colorScheme.secondary : Colors.grey.shade600
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Mesa ${index + 1}', 
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                if (isOccupied)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Ocupada', 
+                      style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  )
+                else
+                  const Text('Livre', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

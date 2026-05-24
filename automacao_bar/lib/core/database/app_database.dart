@@ -6,12 +6,14 @@ import 'package:path/path.dart' as p;
 
 import 'tables.dart';
 import 'daos/orders_dao.dart'; // Importe o DAO
-
+import 'daos/catalog_dao.dart';
 part 'app_database.g.dart';
 
 // ADICIONAMOS A LISTA DE DAOS AQUI
-@DriftDatabase(tables: [Orders, OrderItems, SyncOutbox], daos: [OrdersDao])
-class AppDatabase extends _$AppDatabase {
+@DriftDatabase(
+  tables: [Orders, OrderItems, SyncOutbox, Categories, Products], // Tabelas atualizadas
+  daos: [OrdersDao, CatalogDao], // Adicionado CatalogDao
+)class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
