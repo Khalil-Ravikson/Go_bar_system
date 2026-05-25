@@ -1,3 +1,4 @@
+import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/ui_settings_provider.dart';

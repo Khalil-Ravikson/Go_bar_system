@@ -1,5 +1,5 @@
+import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../../../presentation/theme/app_colors.dart';
 
 class SettingsGeneralScreen extends StatelessWidget {
   const SettingsGeneralScreen({super.key});

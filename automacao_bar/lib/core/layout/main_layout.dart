@@ -1,6 +1,6 @@
+import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../presentation/theme/app_colors.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child; // Esta é a página injetada pelo GoRouter (PDV, Dashboard, etc.)
