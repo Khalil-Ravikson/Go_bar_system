@@ -1,0 +1,83 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../presentation/theme/app_colors.dart';
+
+class MainLayout extends StatelessWidget {
+  final Widget child; // Esta é a página injetada pelo GoRouter (PDV, Dashboard, etc.)
+
+  const MainLayout({super.key, required this.child});
+
+  // Função para calcular qual o item do menu está ativo com base no URL atual
+  int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/dashboard')) return 0;
+    if (location.startsWith('/pos')) return 1;
+    if (location.startsWith('/tables')) return 2;
+    return 1; // Default para POS
+  }
+
+  // Função para navegar quando clicamos num item do menu
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        context.go('/dashboard');
+        break;
+      case 1:
+        context.go('/pos');
+        break;
+      case 2:
+        context.go('/tables');
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+    final currentIndex = _calculateSelectedIndex(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Row(
+        children: [
+          // Se for Desktop/Tablet deitado, desenhamos uma NavigationRail lateral (muito profissional)
+          if (isDesktop)
+            NavigationRail(
+              backgroundColor: AppColors.surface,
+              selectedIndex: currentIndex,
+              onDestinationSelected: (idx) => _onItemTapped(idx, context),
+              selectedIconTheme: const IconThemeData(color: AppColors.primaryNeon),
+              unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary),
+              selectedLabelTextStyle: const TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold),
+              unselectedLabelTextStyle: const TextStyle(color: AppColors.textSecondary),
+              labelType: NavigationRailLabelType.all,
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Painel')),
+                NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: Text('PDV')),
+                NavigationRailDestination(icon: Icon(Icons.table_restaurant_outlined), selectedIcon: Icon(Icons.table_restaurant), label: Text('Mesas')),
+              ],
+            ),
+          
+          // Se for Desktop, adicionamos uma linha divisória
+          if (isDesktop) const VerticalDivider(thickness: 1, width: 1, color: AppColors.border),
+          
+          // Onde a verdadeira página é desenhada
+          Expanded(child: child),
+        ],
+      ),
+      // Se for Mobile, desenhamos uma BottomNavigationBar
+      bottomNavigationBar: isDesktop ? null : BottomNavigationBar(
+        backgroundColor: AppColors.surface,
+        currentIndex: currentIndex,
+        onTap: (idx) => _onItemTapped(idx, context),
+        selectedItemColor: AppColors.primaryNeon,
+        unselectedItemColor: AppColors.textSecondary,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
+          BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'PDV'),
+          BottomNavigationBarItem(icon: Icon(Icons.table_restaurant), label: 'Mesas'),
+        ],
+      ),
+    );
+  }
+}
