@@ -8,7 +8,7 @@ part 'catalog_dao.g.dart';
 
 @DriftAccessor(tables: [Categories, Products])
 class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
-  CatalogDao(AppDatabase db) : super(db);
+  CatalogDao(super.db);
 
   // ==========================================
   // MÉTODOS DE LEITURA (O Salão)

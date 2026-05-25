@@ -154,7 +154,7 @@ class _CatalogManagementScreenState extends ConsumerState<CatalogManagementScree
                         }
 
                         return DropdownButtonFormField<String>(
-                          value: _selectedCategoryId,
+                          initialValue: _selectedCategoryId,
                           hint: const Text('Selecione a Categoria'),
                           decoration: const InputDecoration(border: OutlineInputBorder()),
                           items: categories.map((category) {

@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Importações das suas telas e temas (ajuste os caminhos se necessário)
+// Nossas telas
 import 'presentation/dashboard_screen.dart';
-import 'presentation/theme/app_colors.dart';
 import 'features/pos/presentation/pos_screen.dart';
 import 'features/catalog/presentation/catalog_management_screen.dart';
+import 'presentation/theme/app_colors.dart';
 
 void main() {
+  // A LINHA MÁGICA: Garante que o motor nativo (Linux/SQLite) 
+  // esteja 100% acordado antes de desenhar a interface.
+  WidgetsFlutterBinding.ensureInitialized(); 
+
   runApp(const ProviderScope(child: BarAutomationApp()));
 }
 
+// ==========================================
+// A CLASSE PRINCIPAL DO APP (O Tema Base)
+// ==========================================
 class BarAutomationApp extends StatelessWidget {
   const BarAutomationApp({super.key});
 
@@ -19,30 +26,25 @@ class BarAutomationApp extends StatelessWidget {
     return MaterialApp(
       title: 'PDV Bar & Restaurante',
       debugShowCheckedModeBanner: false,
-      theme: _buildDarkTheme(),
-      // Aponta agora para o nosso novo Orquestrador
-      home: const MainOrchestratorScreen(), 
-    );
-  }
-
-  ThemeData _buildDarkTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background,
-      cardColor: AppColors.surface,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.primaryNeon,
-        secondary: AppColors.primaryOrange,
-        surface: AppColors.surface,
-        error: AppColors.error,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.background,
+        cardColor: AppColors.surface,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.primaryNeon,
+          secondary: AppColors.secondaryMint,
+          surface: AppColors.surface,
+          error: AppColors.error,
+        ),
       ),
+      home: const MainOrchestratorScreen(), 
     );
   }
 }
 
 // ==========================================
-// ORQUESTRADOR DE NAVEGAÇÃO (Bottom Navigation)
+// ORQUESTRADOR RESPONSIVO (Navegação Premium)
 // ==========================================
 class MainOrchestratorScreen extends StatefulWidget {
   const MainOrchestratorScreen({super.key});
@@ -52,49 +54,79 @@ class MainOrchestratorScreen extends StatefulWidget {
 }
 
 class _MainOrchestratorScreenState extends State<MainOrchestratorScreen> {
-  // O aplicativo começa na tela do PDV (Índice 0)
   int _currentIndex = 0;
 
-  // Lista com as 3 telas principais do nosso sistema
+  // As telas da nossa arquitetura modular
   final List<Widget> _screens = const [
-    PosScreen(),               // Aba 0: Novo Pedido (Garçom)
-    DashboardScreen(),         // Aba 1: Visão Geral / Mesas (Seu dashboard original)
-    CatalogManagementScreen(), // Aba 2: Backoffice (Gestão de Cardápio)
+    DashboardScreen(),         // 0: Dashboard (Visão Geral)
+    PosScreen(),               // 1: PDV (Salão/Garçom)
+    CatalogManagementScreen(), // 2: Catálogo (Backoffice)
+  ];
+
+  // Configuração dos itens do menu para reaproveitamento
+  final List<NavigationDestination> _destinations = const [
+    NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
+    NavigationDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: 'PDV'),
+    NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Catálogo'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // O IndexedStack mantém as telas vivas na memória, 
-      // evitando recarregamento (flicker) ao alternar entre as abas.
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+      backgroundColor: AppColors.background,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // SE FOR CELULAR (TELA ESTREITA) -> Menu embaixo
+          if (constraints.maxWidth < 600) {
+            return Column(
+              children: [
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+                NavigationBar(
+                  backgroundColor: AppColors.surface,
+                  indicatorColor: AppColors.primaryNeon.withOpacity(0.2),
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (index) => setState(() => _currentIndex = index),
+                  destinations: _destinations,
+                ),
+              ],
+            );
+          } 
+          // SE FOR PC / TABLET (TELA LARGA) -> Menu na lateral
+          else {
+            return Row(
+              children: [
+                NavigationRail(
+                  backgroundColor: AppColors.surface,
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (index) => setState(() => _currentIndex = index),
+                  indicatorColor: AppColors.primaryNeon.withOpacity(0.2),
+                  selectedIconTheme: const IconThemeData(color: AppColors.primaryNeon),
+                  unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary),
+                  selectedLabelTextStyle: const TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold),
+                  unselectedLabelTextStyle: const TextStyle(color: AppColors.textSecondary),
+                  labelType: NavigationRailLabelType.all,
+                  destinations: _destinations.map((dest) => NavigationRailDestination(
+                    icon: dest.icon,
+                    selectedIcon: dest.selectedIcon,
+                    label: Text(dest.label),
+                  )).toList(),
+                ),
+                const VerticalDivider(thickness: 1, width: 1, color: AppColors.border),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+              ],
+            );
+          }
         },
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primaryNeon,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.point_of_sale),
-            label: 'PDV (Salão)',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Mesas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Catálogo',
-          ),
-        ],
       ),
     );
   }
