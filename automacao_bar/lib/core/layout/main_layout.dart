@@ -15,6 +15,7 @@ class MainLayout extends StatelessWidget {
     if (location.startsWith('/profile')) return 2;
     if (location.startsWith('/settings')) return 3;
     if (location.startsWith('/management')) return 4;
+    if (location.startsWith('/dashboard')) return 5;
     return 0; // Default para POS
   }
 
@@ -35,6 +36,9 @@ class MainLayout extends StatelessWidget {
         break;
       case 4:
         context.go('/management');
+        break;
+      case 5:
+        context.go('/dashboard');
         break;
     }
   }
@@ -65,6 +69,7 @@ class MainLayout extends StatelessWidget {
                 NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Perfil')),
                 NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Configurações')),
                 NavigationRailDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: Text('Gestão')),
+                NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
               ],
             ),
           
@@ -89,6 +94,7 @@ class MainLayout extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Configurações'),
           BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Gestão'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
         ],
       ),
     );

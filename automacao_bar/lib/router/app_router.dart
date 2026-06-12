@@ -8,6 +8,7 @@ import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/kitchen/presentation/screens/kitchen_screen.dart';
 import '../features/orders/presentation/screens/table_details_screen.dart';
 import '../features/management/presentation/screens/menu_management_screen.dart';
+import '../presentation/dashboard_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
@@ -69,6 +70,13 @@ class AppRouter {
             path: '/management',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: MenuManagementScreen(),
+            ),
+          ),
+          // Rota 7: Dashboard Executivo de BI
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DashboardScreen(),
             ),
           ),
         ],

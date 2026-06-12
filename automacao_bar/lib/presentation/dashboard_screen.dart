@@ -1,72 +1,113 @@
-import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
+import 'package:automacao_bar/features/dashboard/application/dashboard_provider.dart';
+import 'package:automacao_bar/features/dashboard/presentation/widgets/kpi_card.dart';
+import 'package:automacao_bar/features/dashboard/presentation/widgets/goal_progress_card.dart';
+import 'package:automacao_bar/features/dashboard/presentation/widgets/comparison_line_chart.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Usamos LayoutBuilder para ajustar as margens se estivermos num PC ou telemóvel
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 800;
-        final padding = isDesktop ? 40.0 : 20.0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(dashboardProvider);
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: SingleChildScrollView(
+    // Calculate variations
+    final double revenueVariation = ((state.totalToday - state.totalYesterday) / state.totalYesterday) * 100;
+    final double ticketVariation = ((state.ticketAverageToday - state.ticketAverageYesterday) / state.ticketAverageYesterday) * 100;
+    final double tablesVariation = ((state.tablesServedToday - state.tablesServedYesterday) / state.tablesServedYesterday) * 100;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth > 1000;
+            final isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 1000;
+            final padding = isDesktop ? 32.0 : 16.0;
+
+            // Define KPI Cards
+            final kpiRevenue = KpiCard(
+              title: 'FATURAMENTO HOJE',
+              value: 'R\$ ${state.totalToday.toStringAsFixed(2)}',
+              variationPercent: revenueVariation,
+              icon: Icons.monetization_on,
+              isPrimary: true,
+            );
+
+            final kpiTicket = KpiCard(
+              title: 'TICKET MÉDIO',
+              value: 'R\$ ${state.ticketAverageToday.toStringAsFixed(2)}',
+              variationPercent: ticketVariation,
+              icon: Icons.analytics,
+            );
+
+            final kpiTables = KpiCard(
+              title: 'MESAS ATENDIDAS',
+              value: '${state.tablesServedToday}',
+              variationPercent: tablesVariation,
+              icon: Icons.table_restaurant,
+            );
+
+            final goalCard = GoalProgressCard(
+              current: state.totalToday,
+              target: state.dailyGoal,
+            );
+
+            return SingleChildScrollView(
               padding: EdgeInsets.all(padding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. HEADER
                   _buildHeader(),
-                  const SizedBox(height: 32),
-                  _buildKPIs(isDesktop),
-                  const SizedBox(height: 40),
-                  Text(
-                    'Caderno Digital (Últimos Registos)',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildRecentLogs(),
+                  const SizedBox(height: 24),
+
+                  // 2. KPI / METRIC ROW (Responsive Layout)
+                  _buildKpiSection(isDesktop, isTablet, kpiRevenue, kpiTicket, kpiTables, goalCard),
+                  const SizedBox(height: 24),
+
+                  // 3. MAIN COMPARISON CHART
+                  _buildChartSection(state),
+                  const SizedBox(height: 24),
+
+                  // 4. TOP PRODUCTS & CATEGORY BREAKDOWN
+                  _buildDetailsSection(isDesktop, state),
                 ],
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
   // ==========================================
-  // 1. CABEÇALHO
+  // HEADER WIDGET
   // ==========================================
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
+        const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Visão Geral',
+            Text(
+              'Visão Executiva',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.textMain,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
-              'Sexta-feira, 22 de Maio', // Pode ser dinâmico depois (ex: DateFormat)
+              'Painel de Business Intelligence • Tempo Real',
               style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 16,
+                color: AppColors.textMuted,
+                fontSize: 14,
               ),
             ),
           ],
@@ -76,119 +117,347 @@ class DashboardScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.surfaceLight),
           ),
-          child: const Icon(Icons.notifications_none, color: AppColors.primaryNeon),
+          child: const Stack(
+            children: [
+              Icon(Icons.notifications_none, color: AppColors.neonGreen, size: 24),
+              Positioned(
+                right: 2,
+                top: 2,
+                child: CircleAvatar(
+                  radius: 4,
+                  backgroundColor: AppColors.danger,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   // ==========================================
-  // 2. MÉTRICAS (KPIs) COM EFEITO NEON
+  // RESPONSIVE KPI CARD GRID BUILDER
   // ==========================================
-  Widget _buildKPIs(bool isDesktop) {
-    final kpiCards = [
-      _buildKPICard('Faturação do Dia', 'R\$ 691,00', Icons.attach_money, isPrimary: true),
-      _buildKPICard('Pedidos Abertos', '12', Icons.receipt_long),
-      _buildKPICard('Ticket Médio', 'R\$ 57,50', Icons.analytics_outlined),
-    ];
-
+  Widget _buildKpiSection(
+    bool isDesktop,
+    bool isTablet,
+    Widget kpiRevenue,
+    Widget kpiTicket,
+    Widget kpiTables,
+    Widget goalCard,
+  ) {
     if (isDesktop) {
       return Row(
-        children: kpiCards.map((card) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 16.0), child: card))).toList(),
+        children: [
+          Expanded(child: kpiRevenue),
+          const SizedBox(width: 16),
+          Expanded(child: kpiTicket),
+          const SizedBox(width: 16),
+          Expanded(child: kpiTables),
+          const SizedBox(width: 16),
+          Expanded(child: goalCard),
+        ],
+      );
+    } else if (isTablet) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: kpiRevenue),
+              const SizedBox(width: 16),
+              Expanded(child: kpiTicket),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: kpiTables),
+              const SizedBox(width: 16),
+              Expanded(child: goalCard),
+            ],
+          ),
+        ],
       );
     } else {
       return Column(
-        children: kpiCards.map((card) => Padding(padding: const EdgeInsets.only(bottom: 16.0), child: card)).toList(),
+        children: [
+          kpiRevenue,
+          const SizedBox(height: 16),
+          kpiTicket,
+          const SizedBox(height: 16),
+          kpiTables,
+          const SizedBox(height: 16),
+          goalCard,
+        ],
       );
     }
   }
 
-  Widget _buildKPICard(String title, String value, IconData icon, {bool isPrimary = false}) {
+  // ==========================================
+  // CHART CONTAINER
+  // ==========================================
+  Widget _buildChartSection(DashboardState state) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isPrimary ? AppColors.primaryNeon.withOpacity(0.5) : AppColors.border,
-          width: isPrimary ? 1.5 : 1.0,
-        ),
-        boxShadow: isPrimary
-            ? [BoxShadow(color: AppColors.primaryNeon.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 4))]
-            : [],
+        border: Border.all(color: AppColors.surfaceLight),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isPrimary ? AppColors.primaryNeon.withOpacity(0.1) : AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: isPrimary ? AppColors.primaryNeon : AppColors.textSecondary, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  color: isPrimary ? AppColors.primaryNeon : AppColors.textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Desempenho de Vendas',
+                    style: TextStyle(
+                      color: AppColors.textMain,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Comparativo de faturamento de hoje com o dia anterior',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  ),
+                ],
+              ),
+              // Legend Indicators
+              Row(
+                children: [
+                  _buildLegendDot(AppColors.textMuted.withValues(alpha: 0.5), 'Ontem'),
+                  const SizedBox(width: 16),
+                  _buildLegendDot(AppColors.neonGreen, 'Hoje'),
+                ],
               ),
             ],
+          ),
+          const SizedBox(height: 32),
+          ComparisonLineChart(
+            todaySpots: state.todaySalesPerHour,
+            yesterdaySpots: state.yesterdaySalesPerHour,
           ),
         ],
       ),
     );
   }
 
-  // ==========================================
-  // 3. O "CADERNO" DIGITAL (Logs)
-  // ==========================================
-  Widget _buildRecentLogs() {
-    // Dados mockados baseados no caderno real
-    final logs = [
-      {'time': '22:15', 'desc': '1 Churrasco Carne + 1 Refri (Mesa 5)', 'value': 'R\$ 27,00', 'type': 'PIX'},
-      {'time': '21:52', 'desc': '2 Hamburgueres + 1 Hot-Dog (Mesa 2)', 'value': 'R\$ 53,00', 'type': 'Crédito'},
-      {'time': '21:30', 'desc': '3 Churrasco Carne (Retirada)', 'value': 'R\$ 66,00', 'type': 'Dinheiro'},
-      {'time': '21:05', 'desc': '1 Churrasco Misto (Alana)', 'value': 'R\$ 22,00', 'type': 'Débito'},
-    ];
+  Widget _buildLegendDot(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 
+  // ==========================================
+  // BOTTOM LISTS SECTION (Responsive)
+  // ==========================================
+  Widget _buildDetailsSection(bool isDesktop, DashboardState state) {
+    final topProductsPanel = _buildTopProductsCard(state.topProducts);
+    final categorySalesPanel = _buildCategorySalesCard(state.categorySales);
+
+    if (isDesktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: topProductsPanel),
+          const SizedBox(width: 24),
+          Expanded(child: categorySalesPanel),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          topProductsPanel,
+          const SizedBox(height: 24),
+          categorySalesPanel,
+        ],
+      );
+    }
+  }
+
+  Widget _buildTopProductsCard(List<Map<String, dynamic>> products) {
     return Container(
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.surfaceLight),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: logs.length,
-        separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 1),
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Text(
-              log['time']!,
-              style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Top 5 Produtos mais Vendidos',
+            style: TextStyle(
+              color: AppColors.textMain,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
-            title: Text(log['desc']!, style: const TextStyle(color: AppColors.textPrimary)),
-            subtitle: Text('Pagamento: ${log['type']}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            trailing: Text(
-              log['value']!,
-              style: const TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: products.length,
+            separatorBuilder: (context, index) => const Divider(color: AppColors.surfaceLight, height: 24),
+            itemBuilder: (context, index) {
+              final prod = products[index];
+              return Row(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppColors.surfaceLight,
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        color: AppColors.neonGreen,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          prod['name'] as String,
+                          style: const TextStyle(
+                            color: AppColors.textMain,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${prod['qty']} unidades',
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'R\$ ${(prod['total'] as double).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: AppColors.textMain,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySalesCard(List<Map<String, dynamic>> categories) {
+    // Calculate category grand total
+    final double grandTotal = categories.fold(0.0, (sum, cat) => sum + (cat['total'] as double));
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Vendas por Categoria',
+            style: TextStyle(
+              color: AppColors.textMain,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 24),
+          Column(
+            children: categories.map((cat) {
+              final name = cat['name'] as String;
+              final total = cat['total'] as double;
+              final color = Color(cat['color'] as int);
+              final double pct = grandTotal > 0 ? total / grandTotal : 0.0;
+
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: AppColors.textMain,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'R\$ ${total.toStringAsFixed(2)} (${(pct * 100).toStringAsFixed(1)}%)',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      minHeight: 6,
+                      backgroundColor: AppColors.surfaceLight,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
