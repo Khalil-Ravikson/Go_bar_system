@@ -5,6 +5,8 @@ import 'package:automacao_bar/features/dashboard/application/dashboard_provider.
 import 'package:automacao_bar/features/dashboard/presentation/widgets/kpi_card.dart';
 import 'package:automacao_bar/features/dashboard/presentation/widgets/goal_progress_card.dart';
 import 'package:automacao_bar/features/dashboard/presentation/widgets/comparison_line_chart.dart';
+import 'package:automacao_bar/features/inventory/application/inventory_provider.dart';
+import 'package:automacao_bar/features/management/application/ingredients_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -17,6 +19,8 @@ class DashboardScreen extends ConsumerWidget {
     final double revenueVariation = ((state.totalToday - state.totalYesterday) / state.totalYesterday) * 100;
     final double ticketVariation = ((state.ticketAverageToday - state.ticketAverageYesterday) / state.ticketAverageYesterday) * 100;
     final double tablesVariation = ((state.tablesServedToday - state.tablesServedYesterday) / state.tablesServedYesterday) * 100;
+
+    final lowStockIngredients = ref.watch(lowStockIngredientsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -61,7 +65,7 @@ class DashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. HEADER
-                  _buildHeader(),
+                  _buildHeader(context, lowStockIngredients),
                   const SizedBox(height: 24),
 
                   // 2. KPI / METRIC ROW (Responsive Layout)
@@ -86,7 +90,7 @@ class DashboardScreen extends ConsumerWidget {
   // ==========================================
   // HEADER WIDGET
   // ==========================================
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context, List<Ingredient> lowStockIngredients) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -112,28 +116,133 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.surfaceLight),
+        GestureDetector(
+          onTap: () {
+            if (lowStockIngredients.isNotEmpty) {
+              _showLowStockBottomSheet(context, lowStockIngredients);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Estoque saudável! Nenhuma quebra crítica reportada.', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  backgroundColor: AppColors.neonGreen,
+                ),
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_none, color: AppColors.neonGreen, size: 24),
+                if (lowStockIngredients.isNotEmpty)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        '${lowStockIngredients.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          child: const Stack(
+        ),
+      ],
+    );
+  }
+
+  void _showLowStockBottomSheet(BuildContext context, List<Ingredient> items) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.notifications_none, color: AppColors.neonGreen, size: 24),
-              Positioned(
-                right: 2,
-                top: 2,
-                child: CircleAvatar(
-                  radius: 4,
-                  backgroundColor: AppColors.danger,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: AppColors.danger),
+                      SizedBox(width: 10),
+                      Text(
+                        'Alertas de Estoque Baixo',
+                        style: TextStyle(color: AppColors.textMain, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textMuted),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Os seguintes ingredientes atingiram níveis críticos de stock e necessitam reabastecimento imediato:',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (context, _) => const Divider(color: AppColors.surfaceLight),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.inventory_2_outlined, color: AppColors.danger),
+                      title: Text(item.name, style: const TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                        'Mínimo de segurança: ${item.minStock.toStringAsFixed(1)} ${item.unitMeasure}',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      ),
+                      trailing: Text(
+                        '${item.inStock.toStringAsFixed(1)} ${item.unitMeasure}',
+                        style: const TextStyle(color: AppColors.danger, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 

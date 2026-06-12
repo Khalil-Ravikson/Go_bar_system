@@ -9,4 +9,8 @@ abstract class AppColors {
   static const Color textMuted = Color(0xFF888888);
   static const Color danger = Color(0xFFFF4444);
   static const Color warning = Color(0xFFFFAA00);
+  static const Color orange = Color(0xFFFF8C42);
+  static const Color textSecondary = Color(0xFF8B91B5);
+  static const Color border = Color(0xFF2A2A2A);
+  static const Color primaryNeon = Color(0xFF00FF88);
 }

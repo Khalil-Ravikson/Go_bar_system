@@ -341,16 +341,20 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                         children: [
                           Text(
                             '${ingredient.inStock.toStringAsFixed(1)} ${ingredient.unitMeasure}',
-                            style: const TextStyle(
-                              color: AppColors.neonGreen,
+                            style: TextStyle(
+                              color: ingredient.inStock <= ingredient.minStock ? AppColors.danger : AppColors.neonGreen,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Em Estoque',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                          Text(
+                            ingredient.inStock <= ingredient.minStock ? 'Estoque Crítico' : 'Em Estoque',
+                            style: TextStyle(
+                              color: ingredient.inStock <= ingredient.minStock ? AppColors.danger : AppColors.textMuted,
+                              fontSize: 11,
+                              fontWeight: ingredient.inStock <= ingredient.minStock ? FontWeight.bold : FontWeight.normal,
+                            ),
                           ),
                         ],
                       ),
@@ -372,6 +376,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     final stockController = TextEditingController();
+    final minStockController = TextEditingController(text: '15.0');
     String selectedUnit = 'un';
 
     showDialog(
@@ -447,6 +452,23 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: minStockController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppColors.textMain),
+                      decoration: const InputDecoration(
+                        labelText: 'Alerta de Estoque Mínimo (Mínimo)',
+                        labelStyle: TextStyle(color: AppColors.textMuted),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) return 'Informe o estoque mínimo';
+                        if (double.tryParse(val.replaceAll(',', '.')) == null) return 'Número inválido';
+                        return null;
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -460,7 +482,8 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                     if (formKey.currentState!.validate()) {
                       final name = nameController.text;
                       final stock = double.parse(stockController.text.replaceAll(',', '.'));
-                      ref.read(ingredientsProvider.notifier).addIngredient(name, selectedUnit, stock);
+                      final minStock = double.parse(minStockController.text.replaceAll(',', '.'));
+                      ref.read(ingredientsProvider.notifier).addIngredient(name, selectedUnit, stock, minStock: minStock);
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

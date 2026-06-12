@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:automacao_bar/shared/presentation/components/neon_button.dart';
 import 'package:automacao_bar/features/pos/presentation/providers/cart_provider.dart';
+import 'package:automacao_bar/features/crm/application/customers_provider.dart';
+import 'package:automacao_bar/features/rh/application/shift_provider.dart';
+import 'package:automacao_bar/features/waste/application/waste_provider.dart';
+import 'package:automacao_bar/features/inventory/application/inventory_provider.dart';
 
 class OrderSidebar extends ConsumerWidget {
   final bool isMobileBottomSheet;
@@ -226,7 +230,52 @@ class OrderSidebar extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes),
+                                onTap: () {
+                                  if (item.isSent) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        backgroundColor: AppColors.surface,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        title: const Text('Item enviado à Cozinha', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+                                        content: Text(
+                                          'O item "${item.name}" já está em preparo.\nComo deseja classificar a remoção?',
+                                          style: const TextStyle(color: AppColors.textMuted),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Erro do Cliente', style: TextStyle(color: AppColors.textMuted)),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              ref.read(wasteProvider.notifier).addWaste(
+                                                productId: item.id,
+                                                productName: item.name,
+                                                quantity: item.quantity.toDouble(),
+                                                reason: 'Cancelado pelo cliente (Cozinha/Preparo)',
+                                              );
+                                              ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                              Navigator.of(context).pop();
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Registrado como Desperdício/Quebra!'),
+                                                  backgroundColor: AppColors.danger,
+                                                ),
+                                              );
+                                            },
+                                            child: const Text('Registrar Desperdício', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } else {
+                                    ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                  }
+                                },
                                 child: const Icon(
                                   Icons.delete_outline,
                                   color: AppColors.danger,
@@ -308,52 +357,108 @@ class OrderSidebar extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 
-                // NeonButton
-                NeonButton(
-                  text: 'COBRAR MESA',
-                  onTap: cartItems.isEmpty
-                      ? null
-                      : () {
-                          if (isMobileBottomSheet) {
-                            Navigator.of(context).pop();
-                          }
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              backgroundColor: AppColors.surface,
-                              title: const Text(
-                                'Finalizar Comanda',
-                                style: TextStyle(color: AppColors.textMain),
+                // Send to kitchen & Checkout buttons row
+                Row(
+                  children: [
+                    if (cartItems.any((item) => !item.isSent))
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ref.read(cartProvider.notifier).markAllAsSent();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Comanda enviada para a cozinha!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                backgroundColor: AppColors.neonGreen,
+                                duration: Duration(seconds: 2),
                               ),
-                              content: Text(
-                                'Deseja lançar os itens na comanda e cobrar a Mesa 04?\nValor Total: R\$ ${total.toStringAsFixed(2)}',
-                                style: const TextStyle(color: AppColors.textMuted),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    ref.read(cartProvider.notifier).clearCart();
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Comanda finalizada com sucesso!',
-                                          style: TextStyle(color: Colors.black),
-                                        ),
-                                        backgroundColor: AppColors.neonGreen,
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.neonGreen, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text(
+                            'ENVIAR COZINHA',
+                            style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    if (cartItems.any((item) => !item.isSent)) const SizedBox(width: 12),
+                    Expanded(
+                      child: NeonButton(
+                        text: 'COBRAR MESA',
+                        onTap: cartItems.isEmpty
+                            ? null
+                            : () {
+                                final selectedCustomer = ref.read(selectedCustomerProvider);
+                                if (isMobileBottomSheet) {
+                                  Navigator.of(context).pop();
+                                }
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: AppColors.surface,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    title: const Text(
+                                      'Finalizar Comanda',
+                                      style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
+                                    ),
+                                    content: Text(
+                                      selectedCustomer != null
+                                          ? 'Deseja cobrar a Mesa 04?\nCliente Vinculado: ${selectedCustomer.name}\nValor Total: R\$ ${total.toStringAsFixed(2)}'
+                                          : 'Deseja cobrar a Mesa 04?\nValor Total: R\$ ${total.toStringAsFixed(2)}',
+                                      style: const TextStyle(color: AppColors.textMuted),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(),
+                                        child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
                                       ),
-                                    );
-                                  },
-                                  child: const Text('Confirmar', style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                      if (selectedCustomer != null)
+                                        TextButton(
+                                          onPressed: () {
+                                            ref.read(customersProvider.notifier).chargeDebt(selectedCustomer.id, total);
+                                            ref.read(shiftProvider.notifier).addSale(total);
+                                            ref.read(inventoryProvider.notifier).decrementStockForCart(cartItems);
+                                            ref.read(cartProvider.notifier).clearCart();
+                                            ref.read(selectedCustomerProvider.notifier).state = null;
+                                            Navigator.of(context).pop();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Comanda lançada no Fiado de ${selectedCustomer.name}!'),
+                                                backgroundColor: AppColors.neonGreen,
+                                              ),
+                                            );
+                                          },
+                                          child: const Text('Lançar Fiado', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                                        ),
+                                      TextButton(
+                                        onPressed: () {
+                                          ref.read(shiftProvider.notifier).addSale(total);
+                                          ref.read(inventoryProvider.notifier).decrementStockForCart(cartItems);
+                                          ref.read(cartProvider.notifier).clearCart();
+                                          ref.read(selectedCustomerProvider.notifier).state = null;
+                                          Navigator.of(context).pop();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Comanda paga com sucesso!',
+                                                style: TextStyle(color: Colors.black),
+                                              ),
+                                              backgroundColor: AppColors.neonGreen,
+                                            ),
+                                          );
+                                        },
+                                        child: const Text('Confirmar Pago', style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

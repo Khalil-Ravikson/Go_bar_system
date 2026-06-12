@@ -1,12 +1,12 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 import 'tables.dart';
 import 'daos/orders_dao.dart';
 import 'daos/catalog_dao.dart';
+
+import 'connection/connection.dart'
+    if (dart.library.js_util) 'connection/web.dart'
+    if (dart.library.io) 'connection/native.dart' as impl;
 
 part 'app_database.g.dart';
 
@@ -15,16 +15,8 @@ part 'app_database.g.dart';
   daos: [OrdersDao, CatalogDao],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(impl.openConnection());
 
   @override
   int get schemaVersion => 1;
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'bar_offline.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
 }

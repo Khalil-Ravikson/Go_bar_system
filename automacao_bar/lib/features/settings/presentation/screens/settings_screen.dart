@@ -1,24 +1,130 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:automacao_bar/core/theme/app_colors.dart';
+import 'package:automacao_bar/features/auth/application/auth_provider.dart';
+import 'package:automacao_bar/features/sync/application/sync_provider.dart';
+import 'package:automacao_bar/features/printer/application/printer_provider.dart';
+import 'package:automacao_bar/features/printer/presentation/widgets/thermal_receipt_preview.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _darkThemeEnabled = true;
   bool _notificationsEnabled = true;
 
+  String _formatTime(DateTime dateTime) {
+    final hours = dateTime.hour.toString().padLeft(2, '0');
+    final minutes = dateTime.minute.toString().padLeft(2, '0');
+    final seconds = dateTime.second.toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
+  }
+
+  Widget _buildSyncStatusBadge(SyncState syncState) {
+    if (syncState.isSyncing) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.blue.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.blue, width: 1),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+            SizedBox(width: 6),
+            Text(
+              'Enviando...',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (!syncState.isOnline) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.danger, width: 1),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off, color: AppColors.danger, size: 14),
+            SizedBox(width: 6),
+            Text(
+              'Offline',
+              style: TextStyle(
+                color: AppColors.danger,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.neonGreen.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.neonGreen, width: 1),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_done, color: AppColors.neonGreen, size: 14),
+          SizedBox(width: 6),
+          Text(
+            'Sincronizado',
+            style: TextStyle(
+              color: AppColors.neonGreen,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(authProvider);
+    final syncState = ref.watch(syncProvider);
+    final printerState = ref.watch(printerProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Configurações'),
+        title: const Text(
+          'Configurações',
+          style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AppColors.surface,
+        elevation: 0,
+        centerTitle: false,
       ),
       body: Center(
         child: ConstrainedBox(
@@ -26,6 +132,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
             children: [
+              _buildSectionHeader('Controle de Acesso (RBAC)'),
+              
+              // Role Selection
+              ListTile(
+                title: const Text(
+                  'Perfil / Cargo de Usuário',
+                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Nome: ${session.name}\nCargo: ${session.role.name.toUpperCase()}',
+                  style: const TextStyle(color: AppColors.textMuted),
+                ),
+                trailing: DropdownButton<UserRole>(
+                  value: session.role,
+                  dropdownColor: AppColors.surfaceLight,
+                  style: const TextStyle(color: AppColors.textMain),
+                  underline: Container(),
+                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.neonGreen),
+                  onChanged: (UserRole? newRole) {
+                    if (newRole != null) {
+                      ref.read(authProvider.notifier).changeRole(newRole);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Cargo alterado para ${newRole.name.toUpperCase()}!',
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: AppColors.neonGreen,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: UserRole.admin,
+                      child: Text('Administrador'),
+                    ),
+                    DropdownMenuItem(
+                      value: UserRole.waiter,
+                      child: Text('Garçom'),
+                    ),
+                    DropdownMenuItem(
+                      value: UserRole.chef,
+                      child: Text('Cozinheiro'),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(color: AppColors.surfaceLight),
+
               _buildSectionHeader('Preferências Visuais'),
               
               // Dark Theme Toggle
@@ -54,51 +212,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               
-              const Divider(),
+              const Divider(color: AppColors.surfaceLight),
               
               _buildSectionHeader('Sincronização & Dados'),
+
+              // Simulated Connectivity Switch
+              SwitchListTile.adaptive(
+                title: const Text(
+                  'Modo Conectado (Online)',
+                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  syncState.isOnline
+                      ? 'Conexão ativa com o servidor Go'
+                      : 'Modo Offline (eventos acumulando no Outbox)',
+                  style: const TextStyle(color: AppColors.textMuted),
+                ),
+                value: syncState.isOnline,
+                activeThumbColor: AppColors.neonGreen,
+                activeTrackColor: AppColors.neonGreen.withValues(alpha: 0.2),
+                onChanged: (bool value) {
+                  ref.read(syncProvider.notifier).toggleConnectivity();
+                },
+              ),
               
               // Sync Status
               ListTile(
                 title: const Text(
-                  'Status de Sincronização',
+                  'Fila de Sincronização (Outbox)',
                   style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text(
-                  'Última sincronização: Há 2 minutos',
-                  style: TextStyle(color: AppColors.textMuted),
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.neonGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.neonGreen, width: 1),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.cloud_done, color: AppColors.neonGreen, size: 14),
-                      SizedBox(width: 6),
-                      Text(
-                        'Sincronizado',
-                        style: TextStyle(
-                          color: AppColors.neonGreen,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Forçando sincronização de dados...'),
-                      backgroundColor: AppColors.surfaceLight,
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Eventos pendentes: ${syncState.pendingCount}',
+                      style: const TextStyle(color: AppColors.textMuted),
                     ),
-                  );
-                },
+                    const SizedBox(height: 2),
+                    Text(
+                      syncState.lastSyncedTime != null
+                          ? 'Última sincronização: ${_formatTime(syncState.lastSyncedTime!)}'
+                          : 'Última sincronização: Nunca',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                    ),
+                  ],
+                ),
+                trailing: _buildSyncStatusBadge(syncState),
+                onTap: syncState.isOnline && syncState.pendingCount > 0 && !syncState.isSyncing
+                    ? () {
+                        ref.read(syncProvider.notifier).triggerManualSync();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Iniciando sincronização forçada...'),
+                            backgroundColor: AppColors.surfaceLight,
+                          ),
+                        );
+                      }
+                    : null,
               ),
               
               // Clear Cache
@@ -152,8 +323,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
               ),
+
+              const Divider(color: AppColors.surfaceLight),
+
+              _buildSectionHeader('Impressão & Periféricos'),
+
+              // Default Printer selection
+              ListTile(
+                title: const Text(
+                  'Impressora Bluetooth Ativa',
+                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  printerState.selectedPrinter ?? 'Nenhuma impressora selecionada',
+                  style: const TextStyle(color: AppColors.textMuted),
+                ),
+                trailing: printerState.isScanning
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
+                        ),
+                      )
+                    : DropdownButton<String>(
+                        value: printerState.selectedPrinter,
+                        dropdownColor: AppColors.surfaceLight,
+                        style: const TextStyle(color: AppColors.textMain),
+                        underline: Container(),
+                        icon: const Icon(Icons.arrow_drop_down, color: AppColors.neonGreen),
+                        onChanged: (String? name) {
+                          if (name != null) {
+                            ref.read(printerProvider.notifier).connectPrinter(name);
+                          }
+                        },
+                        items: printerState.availablePrinters.map((name) {
+                          return DropdownMenuItem(
+                            value: name,
+                            child: Text(name.split(' ')[0]),
+                          );
+                        }).toList(),
+                      ),
+              ),
+
+              // Scan button
+              ListTile(
+                title: const Text(
+                  'Buscar Novas Impressoras',
+                  style: TextStyle(color: AppColors.textMain, fontSize: 14),
+                ),
+                trailing: const Icon(Icons.refresh, color: AppColors.neonGreen),
+                onTap: printerState.isScanning
+                    ? null
+                    : () {
+                        ref.read(printerProvider.notifier).scanPrinters();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Buscando dispositivos Bluetooth próximos...'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+              ),
+
+              // Paper Width setting
+              ListTile(
+                title: const Text(
+                  'Tamanho do Papel (Largura)',
+                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  printerState.paperWidth == PaperWidth.width80mm ? '80mm (Padrão Caixa)' : '58mm (Portátil)',
+                  style: const TextStyle(color: AppColors.textMuted),
+                ),
+                trailing: Switch(
+                  value: printerState.paperWidth == PaperWidth.width80mm,
+                  activeColor: AppColors.neonGreen,
+                  activeTrackColor: AppColors.neonGreen.withValues(alpha: 0.2),
+                  onChanged: (bool is80mm) {
+                    ref.read(printerProvider.notifier).setPaperWidth(
+                          is80mm ? PaperWidth.width80mm : PaperWidth.width58mm,
+                        );
+                  },
+                ),
+              ),
+
+              // Print Test Cupom
+              ListTile(
+                title: const Text(
+                  'Imprimir Cupom de Teste',
+                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Simular via de conferência de teste na impressora ativa',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+                trailing: const Icon(Icons.print_outlined, color: AppColors.neonGreen),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => ThermalReceiptPreview(
+                      tableNumber: 'TESTE',
+                      preparingItems: const [
+                        {'name': 'Item Teste 58/80mm', 'quantity': 1, 'price': 10.0}
+                      ],
+                      deliveredItems: const [],
+                      subtotal: 10.0,
+                      serviceTax: 1.0,
+                      total: 11.0,
+                      paperWidth: printerState.paperWidth,
+                    ),
+                  );
+                },
+              ),
               
-              const Divider(),
+              const Divider(color: AppColors.surfaceLight),
               
               _buildSectionHeader('Notificações'),
               
@@ -177,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               
-              const Divider(),
+              const Divider(color: AppColors.surfaceLight),
               
               _buildSectionHeader('Sistema'),
               

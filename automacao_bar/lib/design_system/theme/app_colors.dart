@@ -20,6 +20,7 @@ abstract class AppColors {
   // Vermelho para alertas operacionais e erros
   static const Color red = Color(0xFFFF4757); 
   static const Color error = red; 
+  static const Color danger = red; 
   static const Color success = neonGreen;
 
   // ----------------------------------------------------

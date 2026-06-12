@@ -6,6 +6,8 @@ class CartItem {
   final double price;
   final int quantity;
   final String? notes;
+  final double discount;
+  final bool isSent;
 
   const CartItem({
     required this.id,
@@ -13,6 +15,8 @@ class CartItem {
     required this.price,
     required this.quantity,
     this.notes,
+    this.discount = 0.0,
+    this.isSent = false,
   });
 
   CartItem copyWith({
@@ -21,6 +25,8 @@ class CartItem {
     double? price,
     int? quantity,
     String? notes,
+    double? discount,
+    bool? isSent,
   }) {
     return CartItem(
       id: id ?? this.id,
@@ -28,14 +34,38 @@ class CartItem {
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
       notes: notes ?? this.notes,
+      discount: discount ?? this.discount,
+      isSent: isSent ?? this.isSent,
     );
   }
+
+  double get total => (price * quantity) - discount;
 }
 
 class CartNotifier extends Notifier<List<CartItem>> {
   @override
   List<CartItem> build() {
     return [];
+  }
+
+  void applyAutoPromotions() {
+    state = state.map((item) {
+      double discount = 0.0;
+      // Promo 1: Hambúrguer Clássico (id: 'p1') - "Pague 2, Leve 3"
+      if (item.id == 'p1' && item.quantity >= 3) {
+        final promoGroups = item.quantity ~/ 3;
+        discount = promoGroups * item.price;
+      }
+      // Promo 2: Heineken Long Neck (id: 'p2') - "10% de desconto a partir de 2"
+      if (item.id == 'p2' && item.quantity >= 2) {
+        discount = item.price * item.quantity * 0.10;
+      }
+      return item.copyWith(discount: discount);
+    }).toList();
+  }
+
+  void markAllAsSent() {
+    state = state.map((item) => item.copyWith(isSent: true)).toList();
   }
 
   void addItem(String id, String name, double price, {String? notes}) {
@@ -53,10 +83,12 @@ class CartNotifier extends Notifier<List<CartItem>> {
         CartItem(id: id, name: name, price: price, quantity: 1, notes: notes),
       ];
     }
+    applyAutoPromotions();
   }
 
   void removeItem(String id, {String? notes}) {
     state = state.where((item) => !(item.id == id && item.notes == notes)).toList();
+    applyAutoPromotions();
   }
 
   void incrementQuantity(String id, {String? notes}) {
@@ -68,6 +100,7 @@ class CartNotifier extends Notifier<List<CartItem>> {
         item.copyWith(quantity: item.quantity + 1),
         ...state.sublist(index + 1),
       ];
+      applyAutoPromotions();
     }
   }
 
@@ -81,6 +114,7 @@ class CartNotifier extends Notifier<List<CartItem>> {
           item.copyWith(quantity: item.quantity - 1),
           ...state.sublist(index + 1),
         ];
+        applyAutoPromotions();
       } else {
         removeItem(id, notes: notes);
       }
@@ -98,5 +132,5 @@ final cartProvider = NotifierProvider<CartNotifier, List<CartItem>>(() {
 
 final cartTotalProvider = Provider<double>((ref) {
   final cart = ref.watch(cartProvider);
-  return cart.fold(0.0, (total, item) => total + (item.price * item.quantity));
+  return cart.fold(0.0, (total, item) => total + item.total);
 });

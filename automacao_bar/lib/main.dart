@@ -13,12 +13,13 @@ void main() {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Trocamos o MaterialApp normal pelo MaterialApp.router
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
     return MaterialApp.router(
       title: 'Sistema PDV Enterprise',
       debugShowCheckedModeBanner: false,
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.darkNeonTheme, 
       
       // Entregamos o controlo absoluto das rotas ao GoRouter
-      routerConfig: AppRouter.router,
+      routerConfig: router,
     );
   }
 }

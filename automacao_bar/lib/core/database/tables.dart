@@ -97,3 +97,51 @@ class ProductIngredients extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+// Tabela de Clientes (CRM)
+class Customers extends Table {
+  TextColumn get id => text()(); // UUIDv7
+  TextColumn get name => text()();
+  TextColumn get phone => text()();
+  RealColumn get currentBalance => real().withDefault(const Constant(0.0))(); // Saldo Devedor/Fiado
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Promoções / Combos (Motor de Promoções)
+class Promotions extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get triggerProductId => text().references(Products, #id)();
+  IntColumn get requiredQuantity => integer()();
+  RealColumn get discountPercentage => real()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Turnos/RH (Controlo de Horas e Gorjetas)
+class Shifts extends Table {
+  TextColumn get id => text()();
+  TextColumn get waiterName => text()();
+  IntColumn get startTime => integer()(); // Epoch timestamp
+  IntColumn get endTime => integer().nullable()(); // Epoch timestamp
+  RealColumn get totalSales => real().withDefault(const Constant(0.0))();
+  RealColumn get tipsEarned => real().withDefault(const Constant(0.0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Desperdício (Controlo de Quebras)
+class Wastes extends Table {
+  TextColumn get id => text()();
+  TextColumn get productId => text().references(Products, #id)();
+  RealColumn get quantity => real()();
+  TextColumn get reason => text()(); // Erro do cliente, quebra de stock, etc.
+  IntColumn get reportedAt => integer()(); // Epoch timestamp
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

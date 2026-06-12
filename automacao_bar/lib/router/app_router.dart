@@ -1,32 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Importa aqui as tuas páginas reais
 import '../features/pos/presentation/screens/pos_screen.dart';
 import '../features/settings/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/kitchen/presentation/screens/kitchen_screen.dart';
 import '../features/orders/presentation/screens/table_details_screen.dart';
 import '../features/management/presentation/screens/menu_management_screen.dart';
+import '../features/cash_register/presentation/screens/cash_register_screen.dart';
 import '../presentation/dashboard_screen.dart';
+import '../features/auth/application/auth_provider.dart';
+import '../features/crm/presentation/screens/customers_screen.dart';
+import '../features/tables/presentation/screens/interactive_map_screen.dart';
+import '../features/rh/presentation/screens/shift_management_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
-// Chave global para o navegador principal
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-// Chave global para o navegador do Shell (a área onde as páginas trocam)
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-class AppRouter {
-  static final GoRouter router = GoRouter(
+final routerProvider = Provider<GoRouter>((ref) {
+  final session = ref.watch(authProvider);
+  final role = session.role;
+
+  return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/pos', // O sistema abre sempre no PDV por defeito
+    initialLocation: role == UserRole.chef ? '/kitchen' : '/pos',
+    
+    // Redirection guards for Role-Based Access Control (RBAC)
+    redirect: (context, state) {
+      final location = state.uri.toString();
+
+      // Block non-admin roles from accessing dashboard or management panels
+      if (location.startsWith('/dashboard') && role != UserRole.admin) {
+        return role == UserRole.chef ? '/kitchen' : '/pos';
+      }
+      if (location.startsWith('/management') && role != UserRole.admin) {
+        return role == UserRole.chef ? '/kitchen' : '/pos';
+      }
+      
+      // Block chefs from POS front-of-house screens
+      if (location.startsWith('/pos') && role == UserRole.chef) {
+        return '/kitchen';
+      }
+
+      // Block chefs from Cash Register panel
+      if (location.startsWith('/cash-register') && role == UserRole.chef) {
+        return '/kitchen';
+      }
+      
+      // Block waiters from kitchen display panels
+      if (location.startsWith('/kitchen') && role == UserRole.waiter) {
+        return '/pos';
+      }
+
+      return null; // Authorize navigation
+    },
+    
     routes: [
-      // ShellRoute é a "Casca" que contém a barra de navegação
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
-          // O MainLayout vai receber a página atual (child) e desenhar o menu em volta
           return MainLayout(child: child);
         },
         routes: [
@@ -61,9 +96,12 @@ class AppRouter {
           // Rota 5: Detalhes da Mesa
           GoRoute(
             path: '/table-details',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: TableDetailsScreen(),
-            ),
+            pageBuilder: (context, state) {
+              final table = state.uri.queryParameters['table'] ?? '04';
+              return NoTransitionPage(
+                child: TableDetailsScreen(tableNumber: table),
+              );
+            },
           ),
           // Rota 6: Gestão de Cardápio
           GoRoute(
@@ -79,8 +117,36 @@ class AppRouter {
               child: DashboardScreen(),
             ),
           ),
+          // Rota 8: Caixa de Turno
+          GoRoute(
+            path: '/cash-register',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CashRegisterScreen(),
+            ),
+          ),
+          // Rota 9: CRM Clientes
+          GoRoute(
+            path: '/customers',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CustomersScreen(),
+            ),
+          ),
+          // Rota 10: Mapa Interativo do Salão
+          GoRoute(
+            path: '/salon',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: InteractiveMapScreen(),
+            ),
+          ),
+          // Rota 11: RH & Turnos/Gorjetas
+          GoRoute(
+            path: '/shifts',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ShiftManagementScreen(),
+            ),
+          ),
         ],
       ),
     ],
   );
-}
+});
