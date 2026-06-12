@@ -1,11 +1,12 @@
-import 'package:automacao_bar/features/tables/presentation/tables_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 // Importa aqui as tuas páginas reais
-import '../features/pos/presentation/pos_screen.dart';
-// import '../features/dashboard/presentation/dashboard_screen.dart'; 
-// import '../features/tables/presentation/tables_screen.dart';
+import '../features/pos/presentation/screens/pos_screen.dart';
+import '../features/settings/presentation/screens/profile_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/kitchen/presentation/screens/kitchen_screen.dart';
+import '../features/orders/presentation/screens/table_details_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
@@ -34,20 +35,32 @@ class AppRouter {
               child: PosScreen(),
             ),
           ),
-          // Rota 2: Dashboard (Preparada para o futuro)
+          // Rota 2: Cozinha (KDS)
           GoRoute(
-            path: '/dashboard',
+            path: '/kitchen',
             pageBuilder: (context, state) => const NoTransitionPage(
-              // child: DashboardScreen(), // <-- Descomentar quando existir
-              child: Scaffold(body: Center(child: Text('Dashboard em Breve'))), 
+              child: KitchenScreen(),
             ),
           ),
-          // Rota 3: Mesas (Preparada para o futuro)
+          // Rota 3: Perfil
           GoRoute(
-            path: '/tables',
+            path: '/profile',
             pageBuilder: (context, state) => const NoTransitionPage(
-              // child: TablesScreen(), // <-- Descomentar quando existir
-              child: TablesScreen(),
+              child: ProfileScreen(),
+            ),
+          ),
+          // Rota 4: Configurações
+          GoRoute(
+            path: '/settings',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SettingsScreen(),
+            ),
+          ),
+          // Rota 5: Detalhes da Mesa
+          GoRoute(
+            path: '/table-details',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: TableDetailsScreen(),
             ),
           ),
         ],

@@ -5,15 +5,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'tables.dart';
-import 'daos/orders_dao.dart'; // Importe o DAO
+import 'daos/orders_dao.dart';
 import 'daos/catalog_dao.dart';
+
 part 'app_database.g.dart';
 
-// ADICIONAMOS A LISTA DE DAOS AQUI
 @DriftDatabase(
-  tables: [Orders, OrderItems, SyncOutbox, Categories, Products], // Tabelas atualizadas
-  daos: [OrdersDao, CatalogDao], // Adicionado CatalogDao
-)class AppDatabase extends _$AppDatabase {
+  tables: [Orders, OrderItems, SyncOutbox, Categories, Products],
+  daos: [OrdersDao, CatalogDao],
+)
+class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override

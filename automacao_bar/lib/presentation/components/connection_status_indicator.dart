@@ -1,6 +1,5 @@
 import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../../core/network/websocket_service.dart';
 import 'jumping_dots.dart';
 
@@ -20,7 +19,7 @@ class ConnectionStatusIndicator extends StatelessWidget {
         statusText = "Online";
         break;
       case WebSocketStatus.connecting:
-        statusColor = AppColors.primaryOrange;
+        statusColor = AppColors.orange;
         statusText = "Sincronizando"; // Tiramos os pontinhos estáticos do texto
         break;
       case WebSocketStatus.offline:

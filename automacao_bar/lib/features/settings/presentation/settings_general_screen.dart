@@ -49,7 +49,7 @@ class SettingsGeneralScreen extends StatelessWidget {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(title, style: const TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold)),
+      child: Text(title, style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.bold)),
     );
   }
 }

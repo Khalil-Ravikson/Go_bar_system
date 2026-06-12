@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router/app_router.dart';
-// Se tiveres um ficheiro de temas globais, importa aqui
-// import 'presentation/theme/app_themes.dart'; 
+import 'core/theme/app_theme.dart';
 
 void main() {
   runApp(
@@ -24,8 +23,8 @@ class MyApp extends StatelessWidget {
       title: 'Sistema PDV Enterprise',
       debugShowCheckedModeBanner: false,
       
-      // Opcional: Adiciona o teu tema escuro/neon aqui
-      // theme: AppThemes.darkNeonTheme, 
+      // Adiciona o teu tema escuro/neon aqui
+      theme: AppTheme.darkNeonTheme, 
       
       // Entregamos o controlo absoluto das rotas ao GoRouter
       routerConfig: AppRouter.router,

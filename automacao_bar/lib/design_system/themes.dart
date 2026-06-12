@@ -1,6 +1,5 @@
 import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'colors.dart';
 
 class AppThemes {
   static ThemeData get darkNeonTheme {
@@ -12,7 +11,6 @@ class AppThemes {
         primary: AppColors.neonGreen,
         secondary: AppColors.teal,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.red,
       ),
       cardTheme: CardThemeData(

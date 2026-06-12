@@ -1,6 +1,5 @@
 import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class RestoCard extends StatelessWidget {
   final String title;
@@ -30,7 +29,7 @@ class RestoCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface, // Cinza Escuro Premium
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceElevated), // Borda sutil
+          border: Border.all(color: AppColors.surfaceHighlight), // Borda sutil
         ),
         child: Row(
           children: [
@@ -48,7 +47,7 @@ class RestoCard extends StatelessWidget {
             // 2. Erro corrigido: O ícone agora vive DENTRO do Row
             Icon(
               syncStatus == 'SYNCED' ? Icons.cloud_done : Icons.cloud_upload,
-              color: syncStatus == 'SYNCED' ? AppColors.primaryNeon : AppColors.primaryOrange,
+              color: syncStatus == 'SYNCED' ? AppColors.primaryNeon : AppColors.orange,
               size: 20,
             ),
             

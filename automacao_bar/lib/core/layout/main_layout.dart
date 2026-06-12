@@ -10,23 +10,27 @@ class MainLayout extends StatelessWidget {
   // Função para calcular qual o item do menu está ativo com base no URL atual
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/dashboard')) return 0;
-    if (location.startsWith('/pos')) return 1;
-    if (location.startsWith('/tables')) return 2;
-    return 1; // Default para POS
+    if (location.startsWith('/pos')) return 0;
+    if (location.startsWith('/kitchen')) return 1;
+    if (location.startsWith('/profile')) return 2;
+    if (location.startsWith('/settings')) return 3;
+    return 0; // Default para POS
   }
 
   // Função para navegar quando clicamos num item do menu
   void _onItemTapped(int index, BuildContext context) {
     switch (index) {
       case 0:
-        context.go('/dashboard');
-        break;
-      case 1:
         context.go('/pos');
         break;
+      case 1:
+        context.go('/kitchen');
+        break;
       case 2:
-        context.go('/tables');
+        context.go('/profile');
+        break;
+      case 3:
+        context.go('/settings');
         break;
     }
   }
@@ -52,9 +56,10 @@ class MainLayout extends StatelessWidget {
               unselectedLabelTextStyle: const TextStyle(color: AppColors.textSecondary),
               labelType: NavigationRailLabelType.all,
               destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Painel')),
                 NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: Text('PDV')),
-                NavigationRailDestination(icon: Icon(Icons.table_restaurant_outlined), selectedIcon: Icon(Icons.table_restaurant), label: Text('Mesas')),
+                NavigationRailDestination(icon: Icon(Icons.restaurant_outlined), selectedIcon: Icon(Icons.restaurant), label: Text('Cozinha')),
+                NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Perfil')),
+                NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Configurações')),
               ],
             ),
           
@@ -73,9 +78,10 @@ class MainLayout extends StatelessWidget {
         selectedItemColor: AppColors.primaryNeon,
         unselectedItemColor: AppColors.textSecondary,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
           BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'PDV'),
-          BottomNavigationBarItem(icon: Icon(Icons.table_restaurant), label: 'Mesas'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: 'Cozinha'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Configurações'),
         ],
       ),
     );

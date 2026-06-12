@@ -1,6 +1,5 @@
 import 'package:automacao_bar/design_system/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../../design_system/colors.dart';
 
 class MetricCard extends StatelessWidget {
   final String label;
