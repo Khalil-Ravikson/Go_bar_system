@@ -7,6 +7,7 @@ import '../features/settings/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/kitchen/presentation/screens/kitchen_screen.dart';
 import '../features/orders/presentation/screens/table_details_screen.dart';
+import '../features/management/presentation/screens/menu_management_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
@@ -61,6 +62,13 @@ class AppRouter {
             path: '/table-details',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: TableDetailsScreen(),
+            ),
+          ),
+          // Rota 6: Gestão de Cardápio
+          GoRoute(
+            path: '/management',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: MenuManagementScreen(),
             ),
           ),
         ],

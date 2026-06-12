@@ -14,6 +14,7 @@ class MainLayout extends StatelessWidget {
     if (location.startsWith('/kitchen')) return 1;
     if (location.startsWith('/profile')) return 2;
     if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/management')) return 4;
     return 0; // Default para POS
   }
 
@@ -31,6 +32,9 @@ class MainLayout extends StatelessWidget {
         break;
       case 3:
         context.go('/settings');
+        break;
+      case 4:
+        context.go('/management');
         break;
     }
   }
@@ -60,6 +64,7 @@ class MainLayout extends StatelessWidget {
                 NavigationRailDestination(icon: Icon(Icons.restaurant_outlined), selectedIcon: Icon(Icons.restaurant), label: Text('Cozinha')),
                 NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Perfil')),
                 NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Configurações')),
+                NavigationRailDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: Text('Gestão')),
               ],
             ),
           
@@ -77,11 +82,13 @@ class MainLayout extends StatelessWidget {
         onTap: (idx) => _onItemTapped(idx, context),
         selectedItemColor: AppColors.primaryNeon,
         unselectedItemColor: AppColors.textSecondary,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'PDV'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: 'Cozinha'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Configurações'),
+          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Gestão'),
         ],
       ),
     );

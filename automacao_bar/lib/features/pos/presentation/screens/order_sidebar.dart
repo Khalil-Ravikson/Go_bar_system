@@ -128,7 +128,7 @@ class OrderSidebar extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).decrementQuantity(item.id),
+                                onTap: () => ref.read(cartProvider.notifier).decrementQuantity(item.id, notes: item.notes),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
@@ -153,7 +153,7 @@ class OrderSidebar extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).incrementQuantity(item.id),
+                                onTap: () => ref.read(cartProvider.notifier).incrementQuantity(item.id, notes: item.notes),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
@@ -186,6 +186,19 @@ class OrderSidebar extends ConsumerWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                if (item.notes != null && item.notes!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    item.notes!,
+                                    style: const TextStyle(
+                                      color: AppColors.warning,
+                                      fontSize: 12,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                                 const SizedBox(height: 4),
                                 Text(
                                   'R\$ ${item.price.toStringAsFixed(2)} unid.',
@@ -213,7 +226,7 @@ class OrderSidebar extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).removeItem(item.id),
+                                onTap: () => ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes),
                                 child: const Icon(
                                   Icons.delete_outline,
                                   color: AppColors.danger,

@@ -69,6 +69,30 @@ class Products extends Table {
   BoolColumn get isHappyHour => boolean().withDefault(const Constant(false))(); // New
   BoolColumn get isSoldOut => boolean().withDefault(const Constant(false))(); // New
   TextColumn get category => text().nullable()(); // New: String category name
+  IntColumn get createdAt => integer().nullable()(); // New
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Ingredientes
+class Ingredients extends Table {
+  TextColumn get id => text()(); // UUIDv7
+  TextColumn get name => text()();
+  TextColumn get unitMeasure => text()(); // e.g. 'un', 'g', 'ml'
+  RealColumn get inStock => real()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Associação de Produtos e Ingredientes (Ficha Técnica / Bill of Materials)
+class ProductIngredients extends Table {
+  TextColumn get id => text()(); // UUIDv7
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get ingredientId => text().references(Ingredients, #id)();
+  RealColumn get defaultQuantity => real()();
+  BoolColumn get isRemovable => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};
