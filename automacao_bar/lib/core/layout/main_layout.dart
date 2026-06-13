@@ -91,6 +91,34 @@ const List<NavigationItem> _allNavItems = [
     label: 'Dashboard',
     allowedRoles: [UserRole.admin],
   ),
+  NavigationItem(
+    path: '/inventory-management',
+    icon: Icons.inventory_2_outlined,
+    selectedIcon: Icons.inventory_2,
+    label: 'Estoque',
+    allowedRoles: [UserRole.admin],
+  ),
+  NavigationItem(
+    path: '/delivery-kds',
+    icon: Icons.delivery_dining_outlined,
+    selectedIcon: Icons.delivery_dining,
+    label: 'Delivery KDS',
+    allowedRoles: [UserRole.admin, UserRole.chef],
+  ),
+  NavigationItem(
+    path: '/courier-settlement',
+    icon: Icons.handshake_outlined,
+    selectedIcon: Icons.handshake,
+    label: 'Estafetas',
+    allowedRoles: [UserRole.admin],
+  ),
+  NavigationItem(
+    path: '/financial-reports',
+    icon: Icons.receipt_long_outlined,
+    selectedIcon: Icons.receipt_long,
+    label: 'Relatórios',
+    allowedRoles: [UserRole.admin],
+  ),
 ];
 
 class MainLayout extends ConsumerWidget {

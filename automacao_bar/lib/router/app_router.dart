@@ -14,6 +14,10 @@ import '../features/auth/application/auth_provider.dart';
 import '../features/crm/presentation/screens/customers_screen.dart';
 import '../features/tables/presentation/screens/interactive_map_screen.dart';
 import '../features/rh/presentation/screens/shift_management_screen.dart';
+import '../features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../features/delivery/presentation/screens/delivery_kds_screen.dart';
+import '../features/delivery/presentation/screens/courier_settlement_screen.dart';
+import '../features/dashboard/presentation/screens/financial_reports_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
@@ -143,6 +147,34 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/shifts',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ShiftManagementScreen(),
+            ),
+          ),
+          // Rota 12: Gestão de Estoque
+          GoRoute(
+            path: '/inventory-management',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: InventoryManagementScreen(),
+            ),
+          ),
+          // Rota 13: Delivery KDS
+          GoRoute(
+            path: '/delivery-kds',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DeliveryKdsScreen(),
+            ),
+          ),
+          // Rota 14: Acerto de Estafetas
+          GoRoute(
+            path: '/courier-settlement',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CourierSettlementScreen(),
+            ),
+          ),
+          // Rota 15: Auditoria & Relatórios
+          GoRoute(
+            path: '/financial-reports',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: FinancialReportsScreen(),
             ),
           ),
         ],

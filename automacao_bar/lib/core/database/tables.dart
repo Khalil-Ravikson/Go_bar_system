@@ -145,3 +145,60 @@ class Wastes extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+// Tabela de Fornecedores (Suppliers)
+class Suppliers extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get contact => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Compras (PurchaseOrders)
+class PurchaseOrders extends Table {
+  TextColumn get id => text()();
+  TextColumn get supplierId => text().references(Suppliers, #id)();
+  RealColumn get totalCost => real()();
+  IntColumn get date => integer()(); // Epoch timestamp
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Registro de Estoque / Logs (InventoryLogs)
+class InventoryLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get ingredientId => text().references(Ingredients, #id)();
+  RealColumn get quantityAdded => real()();
+  RealColumn get costPerUnit => real()();
+  TextColumn get purchaseOrderId => text().nullable().references(PurchaseOrders, #id)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Estafetas (Couriers)
+class Couriers extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get phone => text()();
+  TextColumn get deliveryFeeConfig => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// Tabela de Pedidos Delivery (DeliveryOrders)
+class DeliveryOrders extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderId => text().references(Orders, #id)();
+  TextColumn get courierId => text().nullable().references(Couriers, #id)();
+  TextColumn get customerAddress => text()();
+  TextColumn get status => text()(); // preparando, a_caminho, entregue
+  RealColumn get deliveryFee => real()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

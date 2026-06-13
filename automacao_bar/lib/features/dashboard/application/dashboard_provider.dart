@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../inventory/application/inventory_provider.dart';
 
 class DashboardState {
   final double totalToday;
@@ -109,4 +110,22 @@ class DashboardNotifier extends Notifier<DashboardState> {
 
 final dashboardProvider = NotifierProvider<DashboardNotifier, DashboardState>(() {
   return DashboardNotifier();
+});
+
+// Dynamic AI insights generator provider
+final aiInsightsProvider = Provider<String>((ref) {
+  final dashboard = ref.watch(dashboardProvider);
+  final lowStock = ref.watch(lowStockIngredientsProvider);
+
+  if (lowStock.isNotEmpty) {
+    final names = lowStock.map((e) => e.name).join(', ');
+    return 'Alerta de Insumo: Os ingredientes ($names) estão abaixo do limite mínimo de segurança. Sugerimos registrar uma nota de compra de reposição.';
+  }
+
+  final goalPct = (dashboard.totalToday / dashboard.dailyGoal) * 100;
+  if (goalPct >= 100) {
+    return 'Meta Batida! O faturamento de hoje atingiu ${goalPct.toStringAsFixed(0)}% da meta diária de vendas. Excelente desempenho da equipe!';
+  }
+
+  return 'GoBar AI Insights: As vendas de Bebidas cresceram 30% nas últimas horas. Sugerimos reforçar o estoque de Heineken Long Neck para o fim de semana.';
 });

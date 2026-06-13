@@ -11,7 +11,24 @@ import 'connection/connection.dart'
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Orders, OrderItems, SyncOutbox, Categories, Products, Ingredients, ProductIngredients],
+  tables: [
+    Orders,
+    OrderItems,
+    SyncOutbox,
+    Categories,
+    Products,
+    Ingredients,
+    ProductIngredients,
+    Customers,
+    Promotions,
+    Shifts,
+    Wastes,
+    Suppliers,
+    PurchaseOrders,
+    InventoryLogs,
+    Couriers,
+    DeliveryOrders,
+  ],
   daos: [OrdersDao, CatalogDao],
 )
 class AppDatabase extends _$AppDatabase {

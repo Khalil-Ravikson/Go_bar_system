@@ -68,6 +68,10 @@ class DashboardScreen extends ConsumerWidget {
                   _buildHeader(context, lowStockIngredients),
                   const SizedBox(height: 24),
 
+                  // GoBar AI Insights Card
+                  _buildAiInsightsSection(context, ref),
+                  const SizedBox(height: 24),
+
                   // 2. KPI / METRIC ROW (Responsive Layout)
                   _buildKpiSection(isDesktop, isTablet, kpiRevenue, kpiTicket, kpiTables, goalCard),
                   const SizedBox(height: 24),
@@ -565,6 +569,64 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiInsightsSection(BuildContext context, WidgetRef ref) {
+    final insight = ref.watch(aiInsightsProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.neonGreen.withValues(alpha: 0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.neonGreen.withValues(alpha: 0.02),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.neonGreen.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.psychology, color: AppColors.neonGreen, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'GOBAR AI INSIGHTS',
+                  style: TextStyle(
+                    color: AppColors.neonGreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  insight,
+                  style: const TextStyle(
+                    color: AppColors.textMain,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

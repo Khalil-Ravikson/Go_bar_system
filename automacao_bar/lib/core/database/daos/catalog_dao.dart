@@ -64,6 +64,7 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
         tenantId: tenantId,
         categoryId: categoryId,
         name: name,
+        price: currentPrice / 100.0,
         currentPrice: currentPrice,
         isAvailable: const Value(true), // Em estoque por padrão
       ),
