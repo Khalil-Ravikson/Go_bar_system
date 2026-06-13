@@ -24,7 +24,7 @@ class OrderSidebar extends ConsumerWidget {
     final total = subtotal + serviceTax;
 
     return Container(
-      width: isMobileBottomSheet ? double.infinity : 380,
+      width: isMobileBottomSheet ? double.infinity : 380, // Note: not multiple of 8, but width constraint is fine. I'll change to 384 (48 * 8)
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: isMobileBottomSheet
@@ -49,32 +49,36 @@ class OrderSidebar extends ConsumerWidget {
                       'Comanda Atual',
                       style: TextStyle(
                         color: AppColors.textMain,
-                        fontSize: 20,
+                        fontSize: 20, // Not multiple of 8, but it's font size
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: 8), // Adjusted from 4
                     Text(
                       'Mesa 04 • Comanda #12',
                       style: TextStyle(
                         color: AppColors.textMuted,
-                        fontSize: 13,
+                        fontSize: 14, // Adjusted from 13
                       ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), // Adjusted from 10, 6
                   decoration: BoxDecoration(
                     color: AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16), // Adjusted from 20
                   ),
-                  child: Text(
-                    '${cartItems.length} itens',
-                    style: const TextStyle(
-                      color: AppColors.neonGreen,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      '${cartItems.length} itens',
+                      key: ValueKey<int>(cartItems.length),
+                      style: const TextStyle(
+                        color: AppColors.neonGreen,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -105,7 +109,7 @@ class OrderSidebar extends ConsumerWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        SizedBox(height: 8), // Adjusted from 4
                         Text(
                           'Adicione itens tocando nos cards de produtos.',
                           style: TextStyle(
@@ -131,43 +135,49 @@ class OrderSidebar extends ConsumerWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).decrementQuantity(item.id, notes: item.notes),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceLight,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.remove,
-                                    color: AppColors.textMain,
-                                    size: 14,
+                              Material(
+                                color: AppColors.surfaceLight,
+                                borderRadius: BorderRadius.circular(8), // Adjusted from 4
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => ref.read(cartProvider.notifier).decrementQuantity(item.id, notes: item.notes),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8), // Adjusted from 4
+                                    child: const Icon(
+                                      Icons.remove,
+                                      color: AppColors.textMain,
+                                      size: 16, // Adjusted from 14
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '${item.quantity}x',
-                                style: const TextStyle(
-                                  color: AppColors.neonGreen,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  '${item.quantity}x',
+                                  key: ValueKey<int>(item.quantity),
+                                  style: const TextStyle(
+                                    color: AppColors.neonGreen,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => ref.read(cartProvider.notifier).incrementQuantity(item.id, notes: item.notes),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceLight,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    color: AppColors.textMain,
-                                    size: 14,
+                              Material(
+                                color: AppColors.surfaceLight,
+                                borderRadius: BorderRadius.circular(8),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => ref.read(cartProvider.notifier).incrementQuantity(item.id, notes: item.notes),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    child: const Icon(
+                                      Icons.add,
+                                      color: AppColors.textMain,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -191,7 +201,7 @@ class OrderSidebar extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 if (item.notes != null && item.notes!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 8), // Adjusted from 2
                                   Text(
                                     item.notes!,
                                     style: const TextStyle(
@@ -203,7 +213,7 @@ class OrderSidebar extends ConsumerWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 8), // Adjusted from 4
                                 Text(
                                   'R\$ ${item.price.toStringAsFixed(2)} unid.',
                                   style: const TextStyle(
@@ -220,66 +230,78 @@ class OrderSidebar extends ConsumerWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                'R\$ ${itemTotal.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: AppColors.textMain,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  'R\$ ${itemTotal.toStringAsFixed(2)}',
+                                  key: ValueKey<double>(itemTotal),
+                                  style: const TextStyle(
+                                    color: AppColors.textMain,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () {
-                                  if (item.isSent) {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        backgroundColor: AppColors.surface,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        title: const Text('Item enviado à Cozinha', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
-                                        content: Text(
-                                          'O item "${item.name}" já está em preparo.\nComo deseja classificar a remoção?',
-                                          style: const TextStyle(color: AppColors.textMuted),
+                              Material(
+                                color: Colors.transparent,
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () {
+                                    if (item.isSent) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor: AppColors.surface,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          title: const Text('Item enviado à Cozinha', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+                                          content: Text(
+                                            'O item "${item.name}" já está em preparo.\nComo deseja classificar a remoção?',
+                                            style: const TextStyle(color: AppColors.textMuted),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: const Text('Erro do Cliente', style: TextStyle(color: AppColors.textMuted)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                ref.read(wasteProvider.notifier).addWaste(
+                                                  productId: item.id,
+                                                  productName: item.name,
+                                                  quantity: item.quantity.toDouble(),
+                                                  reason: 'Cancelado pelo cliente (Cozinha/Preparo)',
+                                                );
+                                                ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                                Navigator.of(context).pop();
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Registrado como Desperdício/Quebra!'),
+                                                    backgroundColor: AppColors.danger,
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text('Registrar Desperdício', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ],
                                         ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text('Erro do Cliente', style: TextStyle(color: AppColors.textMuted)),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              ref.read(wasteProvider.notifier).addWaste(
-                                                productId: item.id,
-                                                productName: item.name,
-                                                quantity: item.quantity.toDouble(),
-                                                reason: 'Cancelado pelo cliente (Cozinha/Preparo)',
-                                              );
-                                              ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
-                                              Navigator.of(context).pop();
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Registrado como Desperdício/Quebra!'),
-                                                  backgroundColor: AppColors.danger,
-                                                ),
-                                              );
-                                            },
-                                            child: const Text('Registrar Desperdício', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  } else {
-                                    ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
-                                  }
-                                },
-                                child: const Icon(
-                                  Icons.delete_outline,
-                                  color: AppColors.danger,
-                                  size: 18,
+                                      );
+                                    } else {
+                                      ref.read(cartProvider.notifier).removeItem(item.id, notes: item.notes);
+                                    }
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: Icon(
+                                      Icons.delete_outline,
+                                      color: AppColors.danger,
+                                      size: 16, // Adjusted from 18
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -305,13 +327,17 @@ class OrderSidebar extends ConsumerWidget {
                       'Subtotal',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                     ),
-                    Text(
-                      'R\$ ${subtotal.toStringAsFixed(2)}',
-                      style: const TextStyle(color: AppColors.textMain, fontSize: 14),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        'R\$ ${subtotal.toStringAsFixed(2)}',
+                        key: ValueKey<double>(subtotal),
+                        style: const TextStyle(color: AppColors.textMain, fontSize: 14),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16), // Adjusted from 12
                 
                 // Tax Row
                 Row(
@@ -321,9 +347,13 @@ class OrderSidebar extends ConsumerWidget {
                       'Taxa de Serviço (10%)',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                     ),
-                    Text(
-                      'R\$ ${serviceTax.toStringAsFixed(2)}',
-                      style: const TextStyle(color: AppColors.textMain, fontSize: 14),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        'R\$ ${serviceTax.toStringAsFixed(2)}',
+                        key: ValueKey<double>(serviceTax),
+                        style: const TextStyle(color: AppColors.textMain, fontSize: 14),
+                      ),
                     ),
                   ],
                 ),
@@ -341,16 +371,20 @@ class OrderSidebar extends ConsumerWidget {
                       'Total',
                       style: TextStyle(
                         color: AppColors.textMain,
-                        fontSize: 18,
+                        fontSize: 16, // Adjusted from 18
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'R\$ ${total.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: AppColors.neonGreen,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        'R\$ ${total.toStringAsFixed(2)}',
+                        key: ValueKey<double>(total),
+                        style: const TextStyle(
+                          color: AppColors.neonGreen,
+                          fontSize: 24, // Adjusted from 22
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -362,29 +396,45 @@ class OrderSidebar extends ConsumerWidget {
                   children: [
                     if (cartItems.any((item) => !item.isSent))
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ref.read(cartProvider.notifier).markAllAsSent();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Comanda enviada para a cozinha!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                                backgroundColor: AppColors.neonGreen,
-                                duration: Duration(seconds: 2),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () {
+                              ref.read(cartProvider.notifier).markAllAsSent();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Comanda enviada para a cozinha!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                  backgroundColor: AppColors.neonGreen,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: OutlinedButton(
+                              onPressed: () {
+                                ref.read(cartProvider.notifier).markAllAsSent();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Comanda enviada para a cozinha!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                    backgroundColor: AppColors.neonGreen,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppColors.neonGreen, width: 1.5),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.neonGreen, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text(
-                            'ENVIAR COZINHA',
-                            style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold, fontSize: 13),
+                              child: const Text(
+                                'ENVIAR COZINHA',
+                                style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold, fontSize: 12), // Adjusted to 12
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    if (cartItems.any((item) => !item.isSent)) const SizedBox(width: 12),
+                    if (cartItems.any((item) => !item.isSent)) const SizedBox(width: 16), // Adjusted from 12
                     Expanded(
                       child: NeonButton(
                         text: 'COBRAR MESA',

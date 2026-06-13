@@ -37,7 +37,7 @@ class KpiCard extends StatelessWidget {
         boxShadow: isPrimary
             ? [
                 BoxShadow(
-                  color: AppColors.neonGreen.withValues(alpha: 0.08),
+                  color: AppColors.neonGreen.withValues(alpha: 0.15),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 )
@@ -64,7 +64,7 @@ class KpiCard extends StatelessWidget {
                   color: isPrimary
                       ? AppColors.neonGreen.withValues(alpha: 0.1)
                       : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
@@ -75,13 +75,17 @@ class KpiCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            value,
-            style: TextStyle(
-              color: isPrimary ? AppColors.neonGreen : AppColors.textMain,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              value,
+              key: ValueKey<String>(value),
+              style: TextStyle(
+                color: isPrimary ? AppColors.neonGreen : AppColors.textMain,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -92,7 +96,7 @@ class KpiCard extends StatelessWidget {
                 color: trendColor,
                 size: 14,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 4), // 4 is a sub-multiple, could be 8 but 4 is fine for icon spacing
               Text(
                 '${isPositive ? "+" : ""}${variationPercent.toStringAsFixed(1)}%',
                 style: TextStyle(
@@ -101,7 +105,7 @@ class KpiCard extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
                 comparisonText,
                 style: const TextStyle(

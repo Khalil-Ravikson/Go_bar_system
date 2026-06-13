@@ -40,17 +40,21 @@ class GoalProgressCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // 4 is ok for tight padding
                 decoration: BoxDecoration(
                   color: AppColors.neonGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16), // Adjusted from 20 to 16
                 ),
-                child: Text(
-                  '$percentInt%',
-                  style: const TextStyle(
-                    color: AppColors.neonGreen,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    '$percentInt%',
+                    key: ValueKey<int>(percentInt),
+                    style: const TextStyle(
+                      color: AppColors.neonGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
@@ -62,12 +66,16 @@ class GoalProgressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                'R\$ ${current.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  color: AppColors.textMain,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: Text(
+                  'R\$ ${current.toStringAsFixed(0)}',
+                  key: ValueKey<double>(current),
+                  style: const TextStyle(
+                    color: AppColors.textMain,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Text(
@@ -84,20 +92,24 @@ class GoalProgressCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: percentage,
-              minHeight: 10,
+              minHeight: 8, // Adjusted from 10 to 8
               backgroundColor: AppColors.surfaceLight,
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            percentage >= 1.0
-                ? '🎉 Parabéns! Meta diária atingida!'
-                : 'Faltam R\$ ${(target - current).toStringAsFixed(0)} para atingir a meta.',
-            style: TextStyle(
-              color: percentage >= 1.0 ? AppColors.neonGreen : AppColors.textMuted,
-              fontSize: 12,
-              fontStyle: percentage >= 1.0 ? FontStyle.normal : FontStyle.italic,
+          const SizedBox(height: 16), // Adjusted from 12 to 16
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              percentage >= 1.0
+                  ? '🎉 Parabéns! Meta diária atingida!'
+                  : 'Faltam R\$ ${(target - current).toStringAsFixed(0)} para atingir a meta.',
+              key: ValueKey<String>('$percentage'),
+              style: TextStyle(
+                color: percentage >= 1.0 ? AppColors.neonGreen : AppColors.textMuted,
+                fontSize: 12,
+                fontStyle: percentage >= 1.0 ? FontStyle.normal : FontStyle.italic,
+              ),
             ),
           ),
         ],
