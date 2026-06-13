@@ -73,7 +73,7 @@ class _ThermalReceiptPreviewState extends State<ThermalReceiptPreview> with Sing
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -106,7 +106,7 @@ class _ThermalReceiptPreviewState extends State<ThermalReceiptPreview> with Sing
                 color: const Color(0xFFFAF9F5), // Off-white thermal paper
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),

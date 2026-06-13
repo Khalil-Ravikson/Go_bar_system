@@ -1,4 +1,4 @@
-import 'package:automacao_bar/design_system/theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../core/network/websocket_service.dart';
 import 'jumping_dots.dart';
@@ -31,7 +31,7 @@ class ConnectionStatusIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

@@ -1,4 +1,4 @@
-import 'package:automacao_bar/design_system/theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class RestoCard extends StatelessWidget {
@@ -57,7 +57,7 @@ class RestoCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: statusColor),
               ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 
 // O Enum que define os estados possíveis de uma mesa
 enum TableStatus { free, occupied, closing }
@@ -85,9 +85,9 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
       case TableStatus.free:
         return AppColors.surface;
       case TableStatus.occupied:
-        return AppColors.primaryNeon.withOpacity(0.05);
+        return AppColors.primaryNeon.withValues(alpha: 0.05);
       case TableStatus.closing:
-        return AppColors.orange.withOpacity(0.05);
+        return AppColors.orange.withValues(alpha: 0.05);
     }
   }
 
@@ -110,6 +110,15 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
               color: currentBorderColor,
               width: isFree ? 1 : 1.8,
             ),
+            boxShadow: widget.status == TableStatus.occupied
+                ? [
+                    BoxShadow(
+                      color: AppColors.neonGreen.withValues(alpha: 0.10),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                    )
+                  ]
+                : null,
           ),
           child: Stack(
             children: [
@@ -162,7 +171,7 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
                     shape: BoxShape.circle,
                     boxShadow: isFree ? null : [
                       BoxShadow(
-                        color: statusColor.withOpacity(0.5),
+                        color: statusColor.withValues(alpha: 0.5),
                         blurRadius: 6,
                         spreadRadius: 1,
                       )
@@ -186,6 +195,6 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
       );
     }
 
-    return cardContent(isFree ? AppColors.border : statusColor.withOpacity(0.4));
+    return cardContent(isFree ? AppColors.border : statusColor.withValues(alpha: 0.4));
   }
 }

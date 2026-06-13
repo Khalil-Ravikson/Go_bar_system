@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 
 class AppNeonButton extends StatelessWidget {
   final String text;
@@ -26,7 +26,7 @@ class AppNeonButton extends StatelessWidget {
           foregroundColor: AppColors.background,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: onPressed == null ? 0 : 4,
-          shadowColor: AppColors.primaryNeon.withOpacity(0.4),
+          shadowColor: AppColors.primaryNeon.withValues(alpha: 0.4),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

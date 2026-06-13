@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../design_system/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../design_system/components/table_card.dart';
 
 // No futuro será um ConsumerWidget para ler as mesas da Base de Dados local.

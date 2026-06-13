@@ -1,4 +1,4 @@
-import 'package:automacao_bar/design_system/theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class MetricCard extends StatelessWidget {
@@ -57,7 +57,7 @@ class MetricCard extends StatelessWidget {
                 isTrendUp ? '▲' : '▼',
                 style: TextStyle(
                   fontSize: 10,
-                  color: isTrendUp ? AppColors.neonGreen : AppColors.red,
+                  color: isTrendUp ? AppColors.neonGreen : AppColors.danger,
                 ),
               ),
               const SizedBox(width: 4),
@@ -97,7 +97,7 @@ class MetricCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
             gradient: LinearGradient(
               colors: [
-                accentColor.withOpacity(0.6),
+                accentColor.withValues(alpha: 0.6),
                 accentColor,
               ],
             ),

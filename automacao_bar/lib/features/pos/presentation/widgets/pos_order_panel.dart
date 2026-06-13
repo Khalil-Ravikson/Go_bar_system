@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../design_system/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../design_system/components/app_neon_button.dart';
 import '../../application/cart_provider.dart';
 
@@ -19,7 +19,7 @@ class PosOrderPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDesktop ? AppColors.surface.withOpacity(0.5) : AppColors.surface,
+        color: isDesktop ? AppColors.surface.withValues(alpha: 0.5) : AppColors.surface,
         border: Border(top: isDesktop ? BorderSide.none : const BorderSide(color: AppColors.border)),
       ),
       child: SafeArea(

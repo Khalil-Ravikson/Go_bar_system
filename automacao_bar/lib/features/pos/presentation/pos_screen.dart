@@ -1,1 +1,0 @@
-export 'screens/pos_screen.dart';

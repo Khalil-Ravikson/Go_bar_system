@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:automacao_bar/core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
 
 class AppProductCard extends StatelessWidget {
@@ -46,7 +46,7 @@ class AppProductCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primaryNeon.withOpacity(0.1),
+                color: AppColors.primaryNeon.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(

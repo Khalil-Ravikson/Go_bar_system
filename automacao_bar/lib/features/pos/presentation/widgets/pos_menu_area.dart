@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Verifique se os caminhos dos imports batem com as pastas do seu projeto
 import '../../../../core/database/database_provider.dart';
-import '../../../../design_system/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../design_system/components/app_product_card.dart';
 import '../../application/cart_provider.dart';
 
@@ -97,14 +97,14 @@ class _PosMenuAreaState extends ConsumerState<PosMenuArea> {
                   label: Text(category.name),
                   selected: isSelected,
                   backgroundColor: AppColors.surface,
-                  selectedColor: AppColors.primaryNeon.withOpacity(0.15),
+                  selectedColor: AppColors.primaryNeon.withValues(alpha: 0.15),
                   labelStyle: TextStyle(
                     color: isSelected ? AppColors.primaryNeon : AppColors.textSecondary,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: isSelected ? AppColors.primaryNeon.withOpacity(0.5) : AppColors.border),
+                    side: BorderSide(color: isSelected ? AppColors.primaryNeon.withValues(alpha: 0.5) : AppColors.border),
                   ),
                   onSelected: (_) => setState(() => _selectedCategoryId = category.id),
                 ),

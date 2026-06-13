@@ -14,27 +14,27 @@ class ComparisonLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Yesterday curve (thin dashed grey)
+    // Yesterday curve — dotted, 20% opacity, thin
     final LineChartBarData yesterdayLineData = LineChartBarData(
       spots: yesterdaySpots,
       isCurved: true,
-      color: AppColors.textMuted.withValues(alpha: 0.3),
-      barWidth: 2,
+      color: AppColors.textMuted.withValues(alpha: 0.20),
+      barWidth: 1.5,
       isStrokeCapRound: true,
       dotData: const FlDotData(show: false),
-      dashArray: [6, 4],
+      dashArray: [5, 5],
     );
 
-    // Today curve (thick neon green with glow and gradient below)
+    // Today curve — thick neon green, glow shadow, gradient fill
     final LineChartBarData todayLineData = LineChartBarData(
       spots: todaySpots,
       isCurved: true,
       color: AppColors.neonGreen,
-      barWidth: 4,
+      barWidth: 5,
       isStrokeCapRound: true,
       shadow: Shadow(
-        color: AppColors.neonGreen.withValues(alpha: 0.4),
-        blurRadius: 10,
+        color: AppColors.neonGreen.withValues(alpha: 0.35),
+        blurRadius: 14,
         offset: const Offset(0, 4),
       ),
       dotData: FlDotData(
@@ -61,7 +61,7 @@ class ComparisonLineChart extends StatelessWidget {
         show: true,
         gradient: LinearGradient(
           colors: [
-            AppColors.neonGreen.withValues(alpha: 0.15),
+            AppColors.neonGreen.withValues(alpha: 0.20),
             AppColors.neonGreen.withValues(alpha: 0.0),
           ],
           begin: Alignment.topCenter,

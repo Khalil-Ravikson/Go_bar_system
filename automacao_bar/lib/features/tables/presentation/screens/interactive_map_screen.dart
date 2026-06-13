@@ -253,7 +253,7 @@ class InteractiveMapScreen extends ConsumerWidget {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             border: Border.all(color: color, width: 1.5),
             borderRadius: BorderRadius.circular(4),
           ),
