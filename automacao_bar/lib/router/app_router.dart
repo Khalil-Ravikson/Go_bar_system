@@ -6,7 +6,7 @@ import '../features/pos/presentation/screens/pos_screen.dart';
 import '../features/settings/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/kitchen/presentation/screens/kitchen_screen.dart';
-import '../features/orders/presentation/screens/table_details_screen.dart';
+import '../features/orders/presentation/screens/order_screen.dart';
 import '../features/management/presentation/screens/menu_management_screen.dart';
 import '../features/cash_register/presentation/screens/cash_register_screen.dart';
 import '../presentation/dashboard_screen.dart';
@@ -97,13 +97,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: SettingsScreen(),
             ),
           ),
-          // Rota 5: Detalhes da Mesa
+          // Rota 5: Comanda da Mesa (tela consolidada)
           GoRoute(
             path: '/table-details',
             pageBuilder: (context, state) {
               final table = state.uri.queryParameters['table'] ?? '04';
               return NoTransitionPage(
-                child: TableDetailsScreen(tableNumber: table),
+                child: OrderScreen(tableNumber: table),
               );
             },
           ),

@@ -112,24 +112,38 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Gestão de Estoques & Compras', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.neonGreen,
-          labelColor: AppColors.neonGreen,
-          unselectedLabelColor: AppColors.textMuted,
-          tabs: const [
-            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Níveis de Estoque'),
-            Tab(icon: Icon(Icons.post_add), text: 'Nova Entrada (Fatura)'),
-            Tab(icon: Icon(Icons.history_edu), text: 'Histórico de Compras'),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: TabBarView(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 120,
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            flexibleSpace: const FlexibleSpaceBar(
+              titlePadding: EdgeInsetsDirectional.only(start: 24, bottom: 52),
+              title: Text(
+                'Estoques & Compras',
+                style: TextStyle(
+                  color: AppColors.textMain,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.neonGreen,
+              labelColor: AppColors.neonGreen,
+              unselectedLabelColor: AppColors.textMuted,
+              tabs: const [
+                Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Níveis de Estoque'),
+                Tab(icon: Icon(Icons.post_add), text: 'Nova Entrada'),
+                Tab(icon: Icon(Icons.history_edu), text: 'Histórico'),
+              ],
+            ),
+          ),
+        ],
+        body: TabBarView(
           controller: _tabController,
           children: [
             _buildStockLevelsTab(ingredients, burgerCmv),

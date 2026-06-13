@@ -42,34 +42,43 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
       length: 3,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          title: const Text(
-            'Gestão de Cardápio',
-            style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
-          ),
-          bottom: const TabBar(
-            indicatorColor: AppColors.neonGreen,
-            labelColor: AppColors.neonGreen,
-            unselectedLabelColor: AppColors.textMuted,
-            tabs: [
-              Tab(icon: Icon(Icons.shopping_bag), text: 'Produtos'),
-              Tab(icon: Icon(Icons.inventory_2), text: 'Estoque'),
-              Tab(icon: Icon(Icons.receipt_long), text: 'Ficha Técnica'),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 120,
+              backgroundColor: AppColors.surface,
+              elevation: 0,
+              flexibleSpace: const FlexibleSpaceBar(
+                titlePadding: EdgeInsetsDirectional.only(start: 24, bottom: 52),
+                title: Text(
+                  'Gestão de Cardápio',
+                  style: TextStyle(
+                    color: AppColors.textMain,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              bottom: const TabBar(
+                indicatorColor: AppColors.neonGreen,
+                labelColor: AppColors.neonGreen,
+                unselectedLabelColor: AppColors.textMuted,
+                tabs: [
+                  Tab(icon: Icon(Icons.shopping_bag), text: 'Produtos'),
+                  Tab(icon: Icon(Icons.inventory_2), text: 'Estoque'),
+                  Tab(icon: Icon(Icons.receipt_long), text: 'Ficha Técnica'),
+                ],
+              ),
+            ),
+          ],
+          body: TabBarView(
+            children: [
+              _buildProductsTab(products),
+              _buildIngredientsTab(ingredients),
+              _buildRecipeTab(products, ingredients),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            // Tab 1: Products
-            _buildProductsTab(products),
-
-            // Tab 2: Ingredients
-            _buildIngredientsTab(ingredients),
-
-            // Tab 3: Recipe / BOM
-            _buildRecipeTab(products, ingredients),
-          ],
         ),
       ),
     );

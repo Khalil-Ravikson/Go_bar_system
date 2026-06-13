@@ -117,21 +117,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Configurações',
-          style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        centerTitle: false,
-      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
-            children: [
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 120,
+                backgroundColor: AppColors.surface,
+                elevation: 0,
+                flexibleSpace: const FlexibleSpaceBar(
+                  titlePadding: EdgeInsetsDirectional.only(start: 24, bottom: 16),
+                  title: Text(
+                    'Configurações',
+                    style: TextStyle(
+                      color: AppColors.textMain,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+
               _buildSectionHeader('Controle de Acesso (RBAC)'),
               
               // Role Selection
@@ -478,6 +490,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: Text(
                   'GoBar System',
                   style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold),
+                ),
+              ),
+                  ]),
                 ),
               ),
             ],

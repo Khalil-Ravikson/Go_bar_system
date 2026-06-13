@@ -53,29 +53,40 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> w
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Painel Operacional RH & Desperdício', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.neonGreen,
-          labelColor: AppColors.neonGreen,
-          unselectedLabelColor: AppColors.textMuted,
-          tabs: const [
-            Tab(icon: Icon(Icons.assignment_ind), text: 'Controle de Turnos (RH)'),
-            Tab(icon: Icon(Icons.delete_sweep), text: 'Controle de Desperdício (Quebras)'),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: TabBarView(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 120,
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            flexibleSpace: const FlexibleSpaceBar(
+              titlePadding: EdgeInsetsDirectional.only(start: 24, bottom: 52),
+              title: Text(
+                'RH & Turnos',
+                style: TextStyle(
+                  color: AppColors.textMain,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.neonGreen,
+              labelColor: AppColors.neonGreen,
+              unselectedLabelColor: AppColors.textMuted,
+              tabs: const [
+                Tab(icon: Icon(Icons.assignment_ind), text: 'Controle de Turnos'),
+                Tab(icon: Icon(Icons.delete_sweep), text: 'Desperdício'),
+              ],
+            ),
+          ),
+        ],
+        body: TabBarView(
           controller: _tabController,
           children: [
-            // TAB 1: TURNOS & GORJETAS
             _buildShiftTab(shift),
-
-            // TAB 2: QUEBRAS & DESPERDÍCIO
             _buildWasteTab(wastes),
           ],
         ),
