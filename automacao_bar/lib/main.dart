@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router/app_router.dart';
-import 'core/theme/app_theme.dart';
+import 'design_system/theme.dart';
 
 void main() {
   runApp(
@@ -24,8 +24,10 @@ class MyApp extends ConsumerWidget {
       title: 'Sistema PDV Enterprise',
       debugShowCheckedModeBanner: false,
       
-      // Adiciona o teu tema escuro/neon aqui
-      theme: AppTheme.darkNeonTheme, 
+      // Utiliza o novo PremiumThemeData configurado para Light e Dark
+      theme: PremiumThemeData.lightTheme, 
+      darkTheme: PremiumThemeData.darkTheme,
+      themeMode: ThemeMode.system, // Adapts to user setting but we can force it later
       
       // Entregamos o controlo absoluto das rotas ao GoRouter
       routerConfig: router,

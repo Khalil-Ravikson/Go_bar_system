@@ -4,6 +4,7 @@ enum UserRole {
   admin,
   waiter,
   chef,
+  caixa,
 }
 
 class UserSession {
