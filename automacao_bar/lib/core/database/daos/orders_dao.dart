@@ -15,6 +15,11 @@ class OrdersDao extends DatabaseAccessor<AppDatabase> with _$OrdersDaoMixin {
     return (select(orders)..where((tbl) => tbl.status.equals('aberto'))).watch();
   }
 
+  Stream<Order?> watchActiveOrderForTable(String tableId) {
+    return (select(orders)..where((tbl) => tbl.tableId.equals(tableId) & tbl.status.equals('aberto')))
+        .watchSingleOrNull();
+  }
+
   Stream<List<OrderItem>> watchOrderItems(String orderId) {
     return (select(orderItems)..where((tbl) => tbl.orderId.equals(orderId))).watch();
   }

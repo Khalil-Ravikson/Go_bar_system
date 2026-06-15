@@ -11,6 +11,9 @@ class OrderRepositoryImpl implements IOrderRepository {
   Stream<List<Order>> watchActiveOrders() => _ordersDao.watchActiveOrders();
 
   @override
+  Stream<Order?> watchActiveOrderForTable(String tableId) => _ordersDao.watchActiveOrderForTable(tableId);
+
+  @override
   Stream<List<OrderItem>> watchOrderItems(String orderId) => _ordersDao.watchOrderItems(orderId);
 
   @override

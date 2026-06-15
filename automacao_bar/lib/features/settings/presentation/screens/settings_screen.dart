@@ -115,6 +115,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final syncState = ref.watch(syncProvider);
     final printerState = ref.watch(printerProvider);
 
+    if (session == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
+          ),
+        ),
+      );
+    }
+
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
@@ -491,6 +503,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   'GoBar System',
                   style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold),
                 ),
+              ),
+              const Divider(color: AppColors.surfaceLight),
+              ListTile(
+                title: const Text(
+                  'Encerrar Sessão',
+                  style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Fazer logout do usuário atual',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+                trailing: const Icon(Icons.logout, color: AppColors.danger),
+                onTap: () {
+                  ref.read(authProvider.notifier).logout();
+                },
               ),
                   ]),
                 ),

@@ -98,6 +98,7 @@ class _CashRegisterScreenState extends ConsumerState<CashRegisterScreen> {
                 return;
               }
               final session = ref.read(authProvider);
+              if (session == null) return;
               ref.read(cashRegisterProvider.notifier).addTransaction(
                 amount: amount,
                 type: isSangria ? CashTransactionType.sangria : CashTransactionType.suprimento,
@@ -183,6 +184,7 @@ class _CashRegisterScreenState extends ConsumerState<CashRegisterScreen> {
                 return;
               }
               final session = ref.read(authProvider);
+              if (session == null) return;
               final diff = counted - expectedAmount;
               
               ref.read(cashRegisterProvider.notifier).closeRegister(counted, notes, session.name);
@@ -245,6 +247,17 @@ class _CashRegisterScreenState extends ConsumerState<CashRegisterScreen> {
   Widget build(BuildContext context) {
     final session = ref.watch(authProvider);
     final cashState = ref.watch(cashRegisterProvider);
+
+    if (session == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,

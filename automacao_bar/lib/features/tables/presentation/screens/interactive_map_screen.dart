@@ -7,9 +7,7 @@ import 'package:automacao_bar/design_system/components/table_card.dart';
 import 'package:automacao_bar/core/database/app_database.dart';
 import 'package:automacao_bar/core/providers/repository_providers.dart';
 
-final tablesStreamProvider = StreamProvider<List<RestaurantTable>>((ref) {
-  return ref.watch(tableRepositoryProvider).watchTables();
-});
+import 'package:automacao_bar/features/tables/application/table_fsm_provider.dart';
 
 class InteractiveMapScreen extends ConsumerStatefulWidget {
   const InteractiveMapScreen({super.key});

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:automacao_bar/core/providers/repository_providers.dart';
 
 enum UserRole {
   admin,
@@ -31,34 +32,63 @@ class UserSession {
   }
 }
 
-class AuthNotifier extends Notifier<UserSession> {
+class AuthNotifier extends Notifier<UserSession?> {
   @override
-  UserSession build() {
-    // Default session: Administrator (João Oliveira)
-    return const UserSession(
-      name: 'João Oliveira',
-      role: UserRole.admin,
-      token: 'admin-session-token-123',
-    );
+  UserSession? build() {
+    // Starts unauthenticated (null) to force simple login on boot
+    return null;
+  }
+
+  Future<bool> login(String name, String pin) async {
+    final repo = ref.read(userRepositoryProvider);
+    final users = await repo.getUsers();
+    
+    // Simple verification (find user by name and matching PIN)
+    final match = users.where((u) => u.name.toLowerCase() == name.toLowerCase() && u.pinHash == pin);
+    if (match.isNotEmpty) {
+      final user = match.first;
+      final role = UserRole.values.firstWhere(
+        (e) => e.name == user.role,
+        orElse: () => UserRole.waiter,
+      );
+      state = UserSession(
+        name: user.name,
+        role: role,
+        token: 'session-${user.id}',
+      );
+      return true;
+    }
+    return false;
+  }
+
+  void logout() {
+    state = null;
   }
 
   void changeRole(UserRole newRole) {
-    String newName = state.name;
+    if (state == null) return;
+    String newName = state!.name;
     if (newRole == UserRole.waiter) {
       newName = 'Pedro Silva (Garçom)';
     } else if (newRole == UserRole.chef) {
       newName = 'Chef André (Cozinha)';
+    } else if (newRole == UserRole.caixa) {
+      newName = 'Caixa Principal';
     } else {
       newName = 'João Oliveira (Admin)';
     }
-    
-    state = state.copyWith(
-      role: newRole,
+
+    state = UserSession(
       name: newName,
+      role: newRole,
+      token: 'session-${newRole.name}',
     );
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, UserSession>(() {
+final authProvider = NotifierProvider<AuthNotifier, UserSession?>(() {
   return AuthNotifier();
 });
+
+
+

@@ -79,6 +79,7 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
 
   void _processPayment(double amountPaid, String method, List<Map<String, dynamic>> paidItems) {
     final session = ref.read(authProvider);
+    if (session == null) return;
     final cashState = ref.read(cashRegisterProvider);
     
     // Register the cash transaction in the shift drawer if payment is Cash (Dinheiro)

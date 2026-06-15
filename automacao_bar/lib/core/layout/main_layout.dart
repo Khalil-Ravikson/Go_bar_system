@@ -293,6 +293,7 @@ class MainLayout extends ConsumerWidget {
               Navigator.pop(context);
 
               final session = ref.read(authProvider);
+              if (session == null) return;
               final cashNotifier = ref.read(cashRegisterProvider.notifier);
               final cashState = ref.read(cashRegisterProvider);
 
@@ -324,6 +325,16 @@ class MainLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authProvider);
+    if (session == null) {
+      return const Scaffold(
+        backgroundColor: theme_colors.AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(theme_colors.AppColors.neonGreen),
+          ),
+        ),
+      );
+    }
     final userRole = session.role;
 
     final isAdmin = userRole == UserRole.admin;
@@ -446,7 +457,7 @@ class MainLayout extends ConsumerWidget {
                     title: const Text('Gestão de Usuários'),
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/drawer/usuarios');
+                      context.push('/usuarios');
                     },
                   ),
                   ListTile(

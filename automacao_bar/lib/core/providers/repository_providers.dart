@@ -4,9 +4,11 @@ import '../database/database_provider.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../domain/repositories/table_repository.dart';
+import '../../domain/repositories/user_repository.dart';
 import '../../data/repositories/order_repository_impl.dart';
 import '../../data/repositories/product_repository_impl.dart';
 import '../../data/repositories/table_repository_impl.dart';
+import '../../data/repositories/user_repository_impl.dart';
 
 final orderRepositoryProvider = Provider<IOrderRepository>((ref) {
   final dao = ref.watch(ordersDaoProvider);
@@ -21,4 +23,9 @@ final productRepositoryProvider = Provider<IProductRepository>((ref) {
 final tableRepositoryProvider = Provider<ITableRepository>((ref) {
   final dao = ref.watch(tablesDaoProvider);
   return TableRepositoryImpl(dao);
+});
+
+final userRepositoryProvider = Provider<IUserRepository>((ref) {
+  final db = ref.watch(databaseProvider);
+  return UserRepositoryImpl(db);
 });

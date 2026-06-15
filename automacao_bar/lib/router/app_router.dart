@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 // Screens imports
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/kitchen/presentation/screens/kitchen_screen.dart';
@@ -11,18 +13,23 @@ import '../features/tables/presentation/screens/interactive_map_screen.dart';
 import '../features/rh/presentation/screens/shift_management_screen.dart';
 import '../features/inventory/presentation/screens/inventory_management_screen.dart';
 import '../features/orders/presentation/screens/order_screen.dart';
-
+import '../features/auth/presentation/screens/user_list_screen.dart';
+import '../features/auth/presentation/screens/user_form_screen.dart';
+import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/main_layout.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final session = ref.watch(authProvider);
-  final role = session.role;
+  final refreshListenable = ValueNotifier<UserSession?>(ref.read(authProvider));
+  ref.listen<UserSession?>(authProvider, (_, next) {
+    refreshListenable.value = next;
+  });
 
-  String getInitialRoute(UserRole role) {
-    switch (role) {
+  String getInitialRoute(UserSession? session) {
+    if (session == null) return '/login';
+    switch (session.role) {
       case UserRole.admin:
         return '/home/dashboard';
       case UserRole.waiter:
@@ -35,31 +42,49 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: getInitialRoute(role),
+    refreshListenable: refreshListenable,
+    initialLocation: ref.read(authProvider) != null ? getInitialRoute(ref.read(authProvider)) : '/login',
     
     redirect: (context, state) {
+      final session = ref.read(authProvider);
       final location = state.uri.toString();
+      
+      // If not logged in, redirect to login unless already on login, setup, or cadastro
+      if (session == null) {
+        if (location == '/setup' || location.startsWith('/cadastro')) return null;
+        return '/login';
+      }
+      
+      // If logged in, prevent going to login page
+      if (location == '/login') {
+        return getInitialRoute(session);
+      }
       
       // Redirect root to appropriate home screen based on role
       if (location == '/') {
-        return getInitialRoute(role);
+        return getInitialRoute(session);
       }
       
-      if (location == '/login' || location == '/setup') return null; // Allow login and onboarding setup
+      if (location == '/setup') return null; // Allow onboarding setup
 
-      // Guards for Admin/Dashboard/Management
-      if ((location.startsWith('/home/dashboard') || location.startsWith('/drawer')) && role != UserRole.admin) {
+      final role = session.role;
+
+      // Guards for Admin/Dashboard/Management and restricted paths (/usuarios, /cadastro)
+      if ((location.startsWith('/home/dashboard') || 
+           location.startsWith('/drawer') ||
+           location.startsWith('/usuarios') ||
+           location.startsWith('/cadastro')) && role != UserRole.admin) {
         return '/sem-permissao';
       }
       
       // Guards for POS/PDV (Waiters and Admin only)
       if (location.startsWith('/home/pdv') && role != UserRole.waiter && role != UserRole.admin) {
-        return getInitialRoute(role);
+        return getInitialRoute(session);
       }
       
       // Guards for Kitchen (Chef and Admin only)
       if (location.startsWith('/kds') && role != UserRole.chef && role != UserRole.admin) {
-        return getInitialRoute(role);
+        return getInitialRoute(session);
       }
 
       return null;
@@ -72,15 +97,74 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('PIN Login Screen'))),
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/cadastro',
+        builder: (context, state) {
+          final id = state.uri.queryParameters['id'];
+          return UserFormScreen(userId: id);
+        },
       ),
       GoRoute(
         path: '/sem-permissao',
-        builder: (context, state) => const Scaffold(
+        builder: (context, state) => Scaffold(
+          backgroundColor: const Color(0xFF0A0A0F),
           body: Center(
-            child: Text(
-              'Acesso Restrito',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.gpp_bad,
+                    color: Color(0xFFFF007F), // Cyber Pink
+                    size: 80,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'ACESSO RESTRITO',
+                    style: GoogleFonts.shareTechMono(
+                      color: const Color(0xFFFF007F),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      shadows: [
+                        const Shadow(
+                          color: Color(0xFFFF007F),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Você não possui privilégios de administrador para acessar este setor.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.shareTechMono(
+                      color: const Color(0xFF8B91B5),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF12121A),
+                      foregroundColor: const Color(0xFF00FFFF), // Electric Blue
+                      side: const BorderSide(color: Color(0xFF00FFFF), width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Voltar para o Início'),
+                    onPressed: () {
+                      context.go('/');
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -132,6 +216,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/drawer/usuarios',
             pageBuilder: (context, state) => const NoTransitionPage(child: ShiftManagementScreen()),
+          ),
+           GoRoute(
+            path: '/usuarios',
+            pageBuilder: (context, state) => const NoTransitionPage(child: UserListScreen()),
           ),
           GoRoute(
             path: '/drawer/relatorio',

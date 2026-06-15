@@ -27,7 +27,7 @@ class MyApp extends ConsumerWidget {
       // Utiliza o novo PremiumThemeData configurado para Light e Dark
       theme: PremiumThemeData.lightTheme, 
       darkTheme: PremiumThemeData.darkTheme,
-      themeMode: ThemeMode.system, // Adapts to user setting but we can force it later
+      themeMode: ThemeMode.dark, // Neo Dark Cyberpunk
       
       // Entregamos o controlo absoluto das rotas ao GoRouter
       routerConfig: router,
