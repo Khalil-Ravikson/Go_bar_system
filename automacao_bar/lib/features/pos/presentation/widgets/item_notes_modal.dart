@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:automacao_bar/shared/presentation/components/neon_button.dart';
-import 'package:automacao_bar/features/management/application/products_provider.dart';
-import 'package:automacao_bar/features/management/application/recipe_provider.dart';
+import 'package:automacao_bar/core/database/app_database.dart';
 import 'package:automacao_bar/features/pos/presentation/providers/cart_provider.dart';
-import 'package:automacao_bar/features/pos/presentation/widgets/ingredients_selector.dart';
 
 class ItemNotesModal extends ConsumerStatefulWidget {
   final Product product;
@@ -18,7 +16,6 @@ class ItemNotesModal extends ConsumerStatefulWidget {
 
 class _ItemNotesModalState extends ConsumerState<ItemNotesModal> {
   final _notesController = TextEditingController();
-  final Set<String> _excludedIngredientIds = {};
 
   @override
   void dispose() {
@@ -26,30 +23,8 @@ class _ItemNotesModalState extends ConsumerState<ItemNotesModal> {
     super.dispose();
   }
 
-  void _toggleIngredient(ProductIngredient ing) {
-    if (!ing.isRemovable) return;
-    final phrase = 'Sem ${ing.name}';
-    setState(() {
-      if (_excludedIngredientIds.contains(ing.id)) {
-        _excludedIngredientIds.remove(ing.id);
-        String text = _notesController.text.trim();
-        text = text.replaceAll(phrase, '').trim();
-        text = text.replaceAll(RegExp(r'\s*,\s*,'), ',');
-        text = text.replaceAll(RegExp(r'^[,;\s]+|[,;\s]+$'), '');
-        _notesController.text = text;
-      } else {
-        _excludedIngredientIds.add(ing.id);
-        final current = _notesController.text.trim();
-        _notesController.text =
-            current.isNotEmpty ? '$current, $phrase' : phrase;
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final recipe = ref.watch(productRecipeProvider(widget.product.id));
-
     return Container(
       padding: EdgeInsets.only(
         left: 24,
@@ -104,14 +79,6 @@ class _ItemNotesModalState extends ConsumerState<ItemNotesModal> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Ingredientes (componente extraído)
-            if (recipe.isNotEmpty)
-              IngredientsSelector(
-                recipe: recipe,
-                excludedIds: _excludedIngredientIds,
-                onToggle: _toggleIngredient,
-              ),
 
             // Observações
             const Text(

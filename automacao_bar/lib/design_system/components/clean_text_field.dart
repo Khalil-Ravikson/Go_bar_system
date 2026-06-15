@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../spacing.dart';
-import '../colors.dart';
 
 class CleanTextField extends StatelessWidget {
   final String hintText;

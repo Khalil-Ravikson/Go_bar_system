@@ -8,6 +8,7 @@ import 'package:automacao_bar/core/database/app_database.dart';
 import 'package:automacao_bar/core/providers/repository_providers.dart';
 
 import 'package:automacao_bar/features/tables/application/table_fsm_provider.dart';
+import 'package:automacao_bar/features/orders/application/order_fsm_provider.dart';
 
 class InteractiveMapScreen extends ConsumerStatefulWidget {
   const InteractiveMapScreen({super.key});
@@ -159,66 +160,31 @@ class _InteractiveMapScreenState extends ConsumerState<InteractiveMapScreen> {
                                   final x = tempPos?.dx ?? table.x;
                                   final y = tempPos?.dy ?? table.y;
 
-                                  // Determine status & mock details
-                                  TableStatus status;
-                                  int elapsedMinutes = 0;
-                                  String? valueText;
-
-                                  if (table.status == 'ocupada') {
-                                    status = TableStatus.occupied;
-                                    elapsedMinutes = table.number % 2 == 0 ? 12 : 28;
-                                    valueText = table.number % 2 == 0 ? 'R\$ 78,90' : 'R\$ 192,50';
-                                  } else if (table.status == 'fechamento') {
-                                    status = TableStatus.closing;
-                                    elapsedMinutes = 18;
-                                    valueText = 'R\$ 320,00';
-                                  } else {
-                                    status = TableStatus.free;
-                                    elapsedMinutes = 0;
-                                    valueText = null;
-                                  }
-
-                                  return Positioned(
-                                    left: x,
-                                    top: y,
-                                    child: GestureDetector(
-                                      onPanUpdate: (details) {
-                                        final double newX = (x + details.delta.dx).clamp(0.0, canvasWidth - cardSize);
-                                        final double newY = (y + details.delta.dy).clamp(0.0, canvasHeight - cardSize);
-                                        setState(() {
-                                          _tempPositions[table.id] = Offset(newX, newY);
-                                        });
-                                      },
-                                      onPanEnd: (details) {
-                                        final finalOffset = _tempPositions[table.id];
-                                        if (finalOffset != null) {
-                                          ref.read(tableRepositoryProvider).updateTablePosition(
-                                                table.id,
-                                                finalOffset.dx,
-                                                finalOffset.dy,
-                                              );
-                                        }
-                                      },
-                                      onLongPress: () => _showEditTableMenu(context, table),
-                                      child: SizedBox(
-                                        width: cardSize,
-                                        height: cardSize,
-                                        child: TableCard(
-                                          tableNumber: table.number.toString().padLeft(2, '0'),
-                                          status: status,
-                                          elapsedMinutes: elapsedMinutes,
-                                          infoText: status == TableStatus.free
-                                              ? 'Livre'
-                                              : elapsedMinutes > 0
-                                                  ? 'Ocupada • $elapsedMinutes min'
-                                                  : 'Aguardando Conta',
-                                          valueText: valueText,
-                                          onTap: () {
-                                            context.push('/table-details?table=${table.number}');
-                                          },
-                                        ),
-                                      ),
-                                    ),
+                                  return _TablePositionedCard(
+                                    table: table,
+                                    x: x,
+                                    y: y,
+                                    cardSize: cardSize,
+                                    canvasWidth: canvasWidth,
+                                    canvasHeight: canvasHeight,
+                                    onPanUpdate: (details) {
+                                      final double newX = (x + details.delta.dx).clamp(0.0, canvasWidth - cardSize);
+                                      final double newY = (y + details.delta.dy).clamp(0.0, canvasHeight - cardSize);
+                                      setState(() {
+                                        _tempPositions[table.id] = Offset(newX, newY);
+                                      });
+                                    },
+                                    onPanEnd: () {
+                                      final finalOffset = _tempPositions[table.id];
+                                      if (finalOffset != null) {
+                                        ref.read(tableRepositoryProvider).updateTablePosition(
+                                              table.id,
+                                              finalOffset.dx,
+                                              finalOffset.dy,
+                                            );
+                                      }
+                                    },
+                                    onLongPress: () => _showEditTableMenu(context, table),
                                   );
                                 }),
                               ],
@@ -324,13 +290,13 @@ class _InteractiveMapScreenState extends ConsumerState<InteractiveMapScreen> {
                 return;
               }
 
-              // Create default position
               final newTable = RestaurantTable(
                 id: const Uuid().v7(),
                 number: number,
                 status: 'livre',
                 x: 100.0 + (number * 10) % 300,
                 y: 100.0 + (number * 10) % 200,
+                capacity: 4,
                 updatedAt: DateTime.now().millisecondsSinceEpoch,
               );
 
@@ -456,6 +422,97 @@ class _InteractiveMapScreenState extends ConsumerState<InteractiveMapScreen> {
             child: const Text('Excluir', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TablePositionedCard extends ConsumerWidget {
+  final RestaurantTable table;
+  final double x;
+  final double y;
+  final double cardSize;
+  final double canvasWidth;
+  final double canvasHeight;
+  final Function(DragUpdateDetails) onPanUpdate;
+  final VoidCallback onPanEnd;
+  final VoidCallback onLongPress;
+
+  const _TablePositionedCard({
+    required this.table,
+    required this.x,
+    required this.y,
+    required this.cardSize,
+    required this.canvasWidth,
+    required this.canvasHeight,
+    required this.onPanUpdate,
+    required this.onPanEnd,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeOrderAsync = ref.watch(activeOrderForTableProvider(table.id));
+
+    return Positioned(
+      left: x,
+      top: y,
+      child: GestureDetector(
+        onPanUpdate: onPanUpdate,
+        onPanEnd: (_) => onPanEnd(),
+        onLongPress: onLongPress,
+        child: SizedBox(
+          width: cardSize,
+          height: cardSize,
+          child: activeOrderAsync.when(
+            data: (order) {
+              TableStatus status;
+              int elapsedMinutes = 0;
+              String? valueText;
+
+              if (table.status == 'ocupada') {
+                status = TableStatus.occupied;
+                if (order != null) {
+                  final diff = DateTime.now().millisecondsSinceEpoch - order.openedAt;
+                  elapsedMinutes = (diff / 60000).round();
+                  valueText = 'R\$ ${order.totalAmount.toStringAsFixed(2)}';
+                }
+              } else if (table.status == 'fechamento') {
+                status = TableStatus.closing;
+                if (order != null) {
+                  final diff = DateTime.now().millisecondsSinceEpoch - order.openedAt;
+                  elapsedMinutes = (diff / 60000).round();
+                  valueText = 'R\$ ${order.totalAmount.toStringAsFixed(2)}';
+                }
+              } else {
+                status = TableStatus.free;
+              }
+
+              return TableCard(
+                tableNumber: table.number.toString().padLeft(2, '0'),
+                status: status,
+                elapsedMinutes: elapsedMinutes,
+                infoText: status == TableStatus.free
+                    ? 'Livre'
+                    : elapsedMinutes > 0
+                        ? 'Ocupada • $elapsedMinutes min'
+                        : 'Aguardando Conta',
+                valueText: valueText,
+                onTap: () {
+                  context.push('/table-details?table=${table.number}');
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon)),
+            error: (err, _) => TableCard(
+              tableNumber: table.number.toString().padLeft(2, '0'),
+              status: TableStatus.free,
+              elapsedMinutes: 0,
+              infoText: 'Erro',
+              onTap: () {},
+            ),
+          ),
+        ),
       ),
     );
   }

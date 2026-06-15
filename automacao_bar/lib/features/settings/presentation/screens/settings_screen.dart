@@ -116,12 +116,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final printerState = ref.watch(printerProvider);
 
     if (session == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
-          ),
+        appBar: AppBar(
+          title: const Text('CONFIGURAÇÕES', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+        ),
+        body: StatefulBuilder(
+          builder: (context, setLocalState) {
+            final pinController = TextEditingController();
+            String errorMessage = '';
+
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.surfaceLight),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Icon(Icons.lock_outline, size: 64, color: AppColors.neonGreen),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Acesso Restrito',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.textMain, fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Você está navegando como visitante. Insira seu código PIN para liberar o acesso total ao sistema e salvar comissões/vendas.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5),
+                        ),
+                        const SizedBox(height: 28),
+                        TextField(
+                          controller: pinController,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          maxLength: 4,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textMain, fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+                          decoration: const InputDecoration(
+                            hintText: '••••',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                            counterText: '',
+                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
+                            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
+                          ),
+                          onChanged: (val) async {
+                            if (val.length == 4) {
+                              final success = await ref.read(authProvider.notifier).loginByPin(val);
+                              if (!success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('PIN INVÁLIDO_'),
+                                    backgroundColor: AppColors.danger,
+                                  ),
+                                );
+                                pinController.clear();
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       );
     }
@@ -423,7 +495,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 trailing: Switch(
                   value: printerState.paperWidth == PaperWidth.width80mm,
-                  activeColor: AppColors.neonGreen,
+                  activeThumbColor: AppColors.neonGreen,
                   activeTrackColor: AppColors.neonGreen.withValues(alpha: 0.2),
                   onChanged: (bool is80mm) {
                     ref.read(printerProvider.notifier).setPaperWidth(

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:automacao_bar/features/auth/application/auth_provider.dart';
 import 'package:automacao_bar/design_system/components/glass_container.dart';
 

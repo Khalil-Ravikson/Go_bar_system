@@ -266,7 +266,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
 
                               // Role dropdown
                               DropdownButtonFormField<String>(
-                                value: _selectedRole,
+                                initialValue: _selectedRole,
                                 dropdownColor: const Color(0xFF0A0A0F),
                                 decoration: InputDecoration(
                                   labelText: 'Função (Role)',

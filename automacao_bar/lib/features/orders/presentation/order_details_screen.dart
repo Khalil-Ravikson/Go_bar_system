@@ -113,9 +113,6 @@ class OrderDetailsScreen extends ConsumerWidget {
 
   // O Design System do Card de Item
   Widget _buildItemCard(BuildContext context, OrderItem item) {
-    // Avalia o status de sincronização para mostrar o ícone correto
-    final isSynced = item.syncStatus == 'SYNCED';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -142,18 +139,17 @@ class OrderDetailsScreen extends ConsumerWidget {
                     ),
                   ),
                 const SizedBox(height: 8),
-                // Ícone de Offline/Online Crucial
                 Row(
-                  children: [
+                  children: const [
                     Icon(
-                      isSynced ? Icons.cloud_done : Icons.cloud_upload,
-                      color: isSynced ? Colors.green : Colors.grey,
+                      Icons.cloud_done,
+                      color: Colors.green,
                       size: 16,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
-                      isSynced ? 'Sincronizado' : 'Aguardando rede...',
-                      style: TextStyle(color: isSynced ? Colors.green : Colors.grey, fontSize: 12),
+                      'Salvo localmente',
+                      style: TextStyle(color: Colors.green, fontSize: 12),
                     ),
                   ],
                 )

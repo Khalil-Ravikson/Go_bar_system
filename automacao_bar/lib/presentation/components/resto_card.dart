@@ -29,7 +29,7 @@ class RestoCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface, // Cinza Escuro Premium
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceHighlight), // Borda sutil
+          border: Border.all(color: AppColors.surfaceLight), // Borda sutil
         ),
         child: Row(
           children: [

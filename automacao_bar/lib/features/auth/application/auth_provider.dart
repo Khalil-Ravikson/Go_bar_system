@@ -61,6 +61,26 @@ class AuthNotifier extends Notifier<UserSession?> {
     return false;
   }
 
+  Future<bool> loginByPin(String pin) async {
+    final repo = ref.read(userRepositoryProvider);
+    final users = await repo.getUsers();
+    final match = users.where((u) => u.pinHash == pin);
+    if (match.isNotEmpty) {
+      final user = match.first;
+      final role = UserRole.values.firstWhere(
+        (e) => e.name == user.role,
+        orElse: () => UserRole.waiter,
+      );
+      state = UserSession(
+        name: user.name,
+        role: role,
+        token: 'session-${user.id}',
+      );
+      return true;
+    }
+    return false;
+  }
+
   void logout() {
     state = null;
   }

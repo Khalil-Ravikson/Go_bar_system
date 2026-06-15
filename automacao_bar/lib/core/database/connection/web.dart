@@ -76,7 +76,23 @@ class MockQueryExecutor extends QueryExecutor {
     if (match != null) {
       final tableName = match.group(1)!.toLowerCase();
       if (statement.contains('WHERE')) {
-        // Simple deletion logic if needed, or just clear/ignore
+        final wherePartMatch = RegExp(r'''WHERE\s+(.*)''', caseSensitive: false).firstMatch(statement);
+        if (wherePartMatch != null) {
+          final List<String> whereColumns = RegExp(r'''["'`]?(\w+)["'`]?\s*=\s*\?''')
+              .allMatches(wherePartMatch.group(1)!)
+              .map((m) => m.group(1)!)
+              .toList();
+
+          _tables[tableName]?.removeWhere((row) {
+            for (var i = 0; i < whereColumns.length; i++) {
+              final col = whereColumns[i];
+              if (i < args.length && row[col] != args[i]) {
+                return false;
+              }
+            }
+            return true;
+          });
+        }
       } else {
         _tables[tableName]?.clear();
       }
@@ -148,11 +164,49 @@ class MockQueryExecutor extends QueryExecutor {
   @override
   Future<int> runUpdate(String statement, List<Object?> args) async {
     print('MockDB Update: $statement, Args: $args');
-    // E.g. UPDATE tables SET status = ?, x = ? WHERE id = ?
     final match = RegExp(r'''UPDATE\s+["'`]?(\w+)["'`]?''', caseSensitive: false).firstMatch(statement);
     if (match != null) {
       final tableName = match.group(1)!.toLowerCase();
-      // Simply return 1 to signal success; state updates will reflect in UI correctly
+      final rows = _tables[tableName] ?? [];
+
+      final setPartMatch = RegExp(r'''SET\s+(.*?)\s+WHERE''', caseSensitive: false).firstMatch(statement);
+      if (setPartMatch != null) {
+        final setColumns = RegExp(r'''["'`]?(\w+)["'`]?\s*=\s*\?''')
+            .allMatches(setPartMatch.group(1)!)
+            .map((m) => m.group(1)!)
+            .toList();
+
+        final wherePartMatch = RegExp(r'''WHERE\s+(.*)''', caseSensitive: false).firstMatch(statement);
+        final List<String> whereColumns = [];
+        if (wherePartMatch != null) {
+          whereColumns.addAll(RegExp(r'''["'`]?(\w+)["'`]?\s*=\s*\?''')
+              .allMatches(wherePartMatch.group(1)!)
+              .map((m) => m.group(1)!));
+        }
+
+        for (final row in rows) {
+          bool matches = true;
+          for (var i = 0; i < whereColumns.length; i++) {
+            final col = whereColumns[i];
+            final argIdx = setColumns.length + i;
+            if (argIdx < args.length) {
+              final val = args[argIdx];
+              if (row[col] != val) {
+                matches = false;
+                break;
+              }
+            }
+          }
+          if (matches) {
+            for (var i = 0; i < setColumns.length; i++) {
+              final col = setColumns[i];
+              if (i < args.length) {
+                row[col] = args[i];
+              }
+            }
+          }
+        }
+      }
       return 1;
     }
     return 0;

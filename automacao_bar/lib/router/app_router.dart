@@ -14,6 +14,7 @@ import '../features/rh/presentation/screens/shift_management_screen.dart';
 import '../features/inventory/presentation/screens/inventory_management_screen.dart';
 import '../features/orders/presentation/screens/order_screen.dart';
 import '../features/auth/presentation/screens/user_list_screen.dart';
+import '../features/catalog/presentation/catalog_management_screen.dart';
 import '../features/auth/presentation/screens/user_form_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/main_layout.dart';
@@ -28,7 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
 
   String getInitialRoute(UserSession? session) {
-    if (session == null) return '/login';
+    if (session == null) return '/home/pdv';
     switch (session.role) {
       case UserRole.admin:
         return '/home/dashboard';
@@ -43,16 +44,23 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     refreshListenable: refreshListenable,
-    initialLocation: ref.read(authProvider) != null ? getInitialRoute(ref.read(authProvider)) : '/login',
+    initialLocation: ref.read(authProvider) != null ? getInitialRoute(ref.read(authProvider)) : '/home/pdv',
     
     redirect: (context, state) {
       final session = ref.read(authProvider);
       final location = state.uri.toString();
       
-      // If not logged in, redirect to login unless already on login, setup, or cadastro
+      // If not logged in, guests can visit public paths (/login, /setup, /home/pdv, /table-details, /home/config)
       if (session == null) {
-        if (location == '/setup' || location.startsWith('/cadastro')) return null;
-        return '/login';
+        if (location == '/login' ||
+            location == '/setup' ||
+            location.startsWith('/cadastro') ||
+            location.startsWith('/home/pdv') ||
+            location.startsWith('/table-details') ||
+            location.startsWith('/home/config')) {
+          return null;
+        }
+        return '/home/pdv';
       }
       
       // If logged in, prevent going to login page
@@ -216,6 +224,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/drawer/usuarios',
             pageBuilder: (context, state) => const NoTransitionPage(child: ShiftManagementScreen()),
+          ),
+          GoRoute(
+            path: '/drawer/cardapio',
+            pageBuilder: (context, state) => const NoTransitionPage(child: CatalogManagementScreen()),
           ),
            GoRoute(
             path: '/usuarios',

@@ -18,8 +18,53 @@ class ProductRepositoryImpl implements IProductRepository {
   Stream<List<Category>> watchActiveCategories() => _productsDao.watchActiveCategories();
 
   @override
-  Future<void> insertProduct(Product product) => _productsDao.insertProduct(product);
+  Future<String> insertProduct({
+    required String categoryId,
+    required String name,
+    required double price,
+    double minStock = 0.0,
+    String? description,
+  }) =>
+      _productsDao.insertProduct(
+        categoryId: categoryId,
+        name: name,
+        price: price,
+        minStock: minStock,
+        description: description,
+      );
 
   @override
-  Future<void> insertCategory(Category category) => _productsDao.insertCategory(category);
+  Future<String> insertCategory({
+    required String name,
+    String? colorCode,
+    int sortOrder = 0,
+  }) =>
+      _productsDao.insertCategory(
+        name: name,
+        colorCode: colorCode,
+        sortOrder: sortOrder,
+      );
+
+  @override
+  Future<void> updateProduct({
+    required String id,
+    String? categoryId,
+    String? name,
+    double? price,
+    double? minStock,
+    String? description,
+    bool? isActive,
+  }) =>
+      _productsDao.updateProduct(
+        id: id,
+        categoryId: categoryId,
+        name: name,
+        price: price,
+        minStock: minStock,
+        description: description,
+        isActive: isActive,
+      );
+
+  @override
+  Future<void> deleteProduct(String id) => _productsDao.deleteProduct(id);
 }

@@ -12,7 +12,7 @@ class FinanceHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceHighlight),
+        border: Border.all(color: AppColors.surfaceLight),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

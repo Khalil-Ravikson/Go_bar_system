@@ -9,7 +9,7 @@ import 'package:automacao_bar/features/dashboard/presentation/widgets/ai_insight
 import 'package:automacao_bar/features/dashboard/presentation/widgets/kpi_section.dart';
 import 'package:automacao_bar/features/dashboard/presentation/widgets/chart_section.dart';
 import 'package:automacao_bar/features/dashboard/presentation/widgets/details_section.dart';
-import 'package:automacao_bar/features/inventory/application/inventory_provider.dart';
+import 'package:automacao_bar/core/database/database_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -23,7 +23,7 @@ class DashboardScreen extends ConsumerWidget {
     final double ticketVariation = state.ticketAverageYesterday > 0 ? ((state.ticketAverageToday - state.ticketAverageYesterday) / state.ticketAverageYesterday) * 100 : 0;
     final double tablesVariation = state.tablesServedYesterday > 0 ? ((state.tablesServedToday - state.tablesServedYesterday) / state.tablesServedYesterday) * 100 : 0;
 
-    final lowStockIngredients = ref.watch(lowStockIngredientsProvider);
+    final lowStockProducts = ref.watch(lowStockProductsProvider).value ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -67,7 +67,7 @@ class DashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DashboardHeader(lowStockIngredients: lowStockIngredients),
+                  DashboardHeader(lowStockProducts: lowStockProducts),
                   const SizedBox(height: 24),
                   
                   const AiInsightsCard(),

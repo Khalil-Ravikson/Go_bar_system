@@ -45,9 +45,9 @@ const List<NavigationItem> _adminNavItems = [
   ),
   NavigationItem(
     path: '/home/config',
-    icon: Icons.person_outline,
-    selectedIcon: Icons.person,
-    label: 'Perfil',
+    icon: Icons.settings_outlined,
+    selectedIcon: Icons.settings,
+    label: 'Configurações',
   ),
 ];
 
@@ -60,9 +60,9 @@ const List<NavigationItem> _waiterNavItems = [
   ),
   NavigationItem(
     path: '/home/config',
-    icon: Icons.person_outline,
-    selectedIcon: Icons.person,
-    label: 'Perfil',
+    icon: Icons.settings_outlined,
+    selectedIcon: Icons.settings,
+    label: 'Configurações',
   ),
 ];
 
@@ -118,6 +118,7 @@ class MainLayout extends ConsumerWidget {
                     status: 'livre',
                     x: 120.0,
                     y: 120.0,
+                    capacity: 4,
                     updatedAt: DateTime.now().millisecondsSinceEpoch,
                   ),
                 );
@@ -174,7 +175,7 @@ class MainLayout extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<UserRole>(
-                  value: selectedRole,
+                  initialValue: selectedRole,
                   dropdownColor: theme_colors.AppColors.surface,
                   style: const TextStyle(color: theme_colors.AppColors.textMain),
                   decoration: const InputDecoration(
@@ -325,17 +326,7 @@ class MainLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authProvider);
-    if (session == null) {
-      return const Scaffold(
-        backgroundColor: theme_colors.AppColors.background,
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(theme_colors.AppColors.neonGreen),
-          ),
-        ),
-      );
-    }
-    final userRole = session.role;
+    final userRole = session?.role;
 
     final isAdmin = userRole == UserRole.admin;
     final isCaixa = userRole == UserRole.caixa;
@@ -443,6 +434,14 @@ class MainLayout extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+                   ListTile(
+                    leading: const Icon(Icons.restaurant_menu),
+                    title: const Text('Gestão de Cardápio'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/drawer/cardapio');
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.inventory_2_outlined),

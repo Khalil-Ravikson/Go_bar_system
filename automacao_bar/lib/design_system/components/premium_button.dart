@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../spacing.dart';
 import '../colors.dart';
-import '../typography.dart';
 
 class PremiumButton extends StatelessWidget {
   final String text;

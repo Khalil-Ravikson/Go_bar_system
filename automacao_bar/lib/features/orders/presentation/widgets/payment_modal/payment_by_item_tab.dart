@@ -66,7 +66,7 @@ class _PaymentByItemTabState extends State<PaymentByItemTab> {
                   )
                 : ListView.separated(
                     itemCount: _allItems.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const Divider(color: AppColors.surfaceLight, height: 1),
                     itemBuilder: (context, idx) {
                       final item = _allItems[idx];

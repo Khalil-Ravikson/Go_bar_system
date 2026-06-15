@@ -14,7 +14,7 @@ class _ArcProgressPainter extends CustomPainter {
     required this.progress,
     required this.trackColor,
     required this.progressColor,
-    this.strokeWidth = 10,
+    this.strokeWidth = 10.0,
   });
 
   @override

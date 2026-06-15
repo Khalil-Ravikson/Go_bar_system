@@ -29,6 +29,23 @@ class SyncState {
       pendingCount: pendingCount ?? this.pendingCount,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncState &&
+          runtimeType == other.runtimeType &&
+          isOnline == other.isOnline &&
+          isSyncing == other.isSyncing &&
+          lastSyncedTime == other.lastSyncedTime &&
+          pendingCount == other.pendingCount;
+
+  @override
+  int get hashCode =>
+      isOnline.hashCode ^
+      isSyncing.hashCode ^
+      lastSyncedTime.hashCode ^
+      pendingCount.hashCode;
 }
 
 class SyncNotifier extends Notifier<SyncState> {
@@ -41,20 +58,37 @@ class SyncNotifier extends Notifier<SyncState> {
       _syncTimer?.cancel();
     });
 
-    // Check count initially
-    Future.microtask(() => checkPendingCount());
+    // Listen to the pending sync events stream reactively to trigger sync logic
+    ref.listen(pendingSyncEventsProvider, (previous, next) {
+      final events = next.value;
+      if (events != null) {
+        if (state.pendingCount != events.length) {
+          state = state.copyWith(pendingCount: events.length);
+        }
+        if (events.isNotEmpty && state.isOnline && !state.isSyncing) {
+          _runSyncCycle();
+        }
+      }
+    });
 
-    return const SyncState(
+    // Fetch initial state safely
+    final initialEvents = ref.read(pendingSyncEventsProvider).value;
+    if (initialEvents != null && initialEvents.isNotEmpty) {
+      Future.microtask(() => _runSyncCycle());
+    }
+
+    return SyncState(
       isOnline: true,
       isSyncing: false,
       lastSyncedTime: null,
-      pendingCount: 0,
+      pendingCount: initialEvents?.length ?? 0,
     );
   }
 
   void _startTimer() {
     _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Run sync check every 30 seconds as a fallback/retry mechanism
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _runSyncCycle();
     });
   }
@@ -63,7 +97,9 @@ class SyncNotifier extends Notifier<SyncState> {
     try {
       final dao = ref.read(ordersDaoProvider);
       final events = await dao.getPendingSyncEvents();
-      state = state.copyWith(pendingCount: events.length);
+      if (state.pendingCount != events.length) {
+        state = state.copyWith(pendingCount: events.length);
+      }
     } catch (e) {
       debugPrint('Error checking pending sync count: $e');
     }

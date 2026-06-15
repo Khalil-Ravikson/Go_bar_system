@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../design_system/components/table_card.dart';
+import '../../../core/database/app_database.dart';
+import '../../tables/application/table_fsm_provider.dart';
+import '../../orders/application/order_fsm_provider.dart';
 
-// No futuro será um ConsumerWidget para ler as mesas da Base de Dados local.
-// Por agora, para montar a UI rapidamente, usamos um StatelessWidget com dados mockados.
-class TablesScreen extends StatelessWidget {
+class TablesScreen extends ConsumerWidget {
   const TablesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tablesAsync = ref.watch(tablesStreamProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: LayoutBuilder(
@@ -36,60 +40,111 @@ class TablesScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.add, color: AppColors.primaryNeon),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 8),
-                ],
               ),
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final tableNum = (index + 1).toString();
+              tablesAsync.when(
+                data: (tables) {
+                  if (tables.isEmpty) {
+                    return const SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          'Nenhuma mesa cadastrada.',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                        ),
+                      ),
+                    );
+                  }
 
-                      TableStatus status = TableStatus.free;
-                      String info = 'Livre';
-                      String? value;
-
-                      if (index == 0 || index == 3) {
-                        status = TableStatus.occupied;
-                        info = 'Ocupada • 42 min';
-                        value = 'R\$ 184,50';
-                      } else if (index == 5) {
-                        status = TableStatus.closing;
-                        info = 'Aguardando Pagamento';
-                        value = 'R\$ 320,00';
-                      }
-
-                      return TableCard(
-                        tableNumber: tableNum,
-                        status: status,
-                        infoText: info,
-                        valueText: value,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('A abrir Mesa $tableNum...')),
-                          );
+                  return SliverPadding(
+                    padding: const EdgeInsets.all(20),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.1,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final table = tables[index];
+                          return _TableGridCard(table: table);
                         },
-                      );
-                    },
-                    childCount: 12,
+                        childCount: tables.length,
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primaryNeon)),
+                ),
+                error: (err, _) => SliverFillRemaining(
+                  child: Center(
+                    child: Text('Erro: $err', style: const TextStyle(color: AppColors.error)),
                   ),
                 ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _TableGridCard extends ConsumerWidget {
+  final RestaurantTable table;
+
+  const _TableGridCard({required this.table});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeOrderAsync = ref.watch(activeOrderForTableProvider(table.id));
+
+    return activeOrderAsync.when(
+      data: (order) {
+        TableStatus status;
+        int elapsedMinutes = 0;
+        String? valueText;
+
+        if (table.status == 'ocupada') {
+          status = TableStatus.occupied;
+          if (order != null) {
+            final diff = DateTime.now().millisecondsSinceEpoch - order.openedAt;
+            elapsedMinutes = (diff / 60000).round();
+            valueText = 'R\$ ${order.totalAmount.toStringAsFixed(2)}';
+          }
+        } else if (table.status == 'fechamento') {
+          status = TableStatus.closing;
+          if (order != null) {
+            final diff = DateTime.now().millisecondsSinceEpoch - order.openedAt;
+            elapsedMinutes = (diff / 60000).round();
+            valueText = 'R\$ ${order.totalAmount.toStringAsFixed(2)}';
+          }
+        } else {
+          status = TableStatus.free;
+        }
+
+        return TableCard(
+          tableNumber: table.number.toString().padLeft(2, '0'),
+          status: status,
+          elapsedMinutes: elapsedMinutes,
+          infoText: status == TableStatus.free
+              ? 'Livre'
+              : elapsedMinutes > 0
+                  ? 'Ocupada • $elapsedMinutes min'
+                  : 'Aguardando Conta',
+          valueText: valueText,
+          onTap: () {
+            context.push('/table-details?table=${table.number}');
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon)),
+      error: (err, _) => TableCard(
+        tableNumber: table.number.toString().padLeft(2, '0'),
+        status: TableStatus.free,
+        elapsedMinutes: 0,
+        infoText: 'Erro',
+        onTap: () {},
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import '../database/daos/orders_dao.dart';
-import '../database/app_database.dart';
 
 class SyncService {
   final OrdersDao _dao;

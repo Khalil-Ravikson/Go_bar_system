@@ -12,14 +12,14 @@ import 'package:automacao_bar/shared/presentation/components/app_bottom_action_b
 
 import 'package:automacao_bar/core/database/app_database.dart';
 import 'package:automacao_bar/features/tables/application/table_fsm_provider.dart';
-import 'package:automacao_bar/features/orders/application/order_fsm_provider.dart';
+import 'package:automacao_bar/features/orders/application/order_fsm_provider.dart' hide orderItemsProvider;
 import 'package:automacao_bar/features/auth/application/auth_provider.dart';
 import 'package:automacao_bar/features/cash_register/application/cash_register_provider.dart';
 import 'package:automacao_bar/features/printer/application/printer_provider.dart';
 import 'package:automacao_bar/features/printer/presentation/widgets/thermal_receipt_preview.dart';
 import 'package:automacao_bar/features/crm/application/customers_provider.dart';
 import 'package:automacao_bar/features/rh/application/shift_provider.dart';
-import 'package:automacao_bar/features/inventory/application/inventory_provider.dart';
+import 'package:automacao_bar/core/database/database_provider.dart';
 
 import '../widgets/order_header_card.dart';
 import '../widgets/order_item_tile.dart';
@@ -41,6 +41,59 @@ class OrderScreen extends ConsumerStatefulWidget {
 
 class _OrderScreenState extends ConsumerState<OrderScreen> {
   double _paidAmount = 0.0;
+
+  Future<void> _ensureLoggedIn(BuildContext context, VoidCallback onLoggedIn) async {
+    final session = ref.read(authProvider);
+    if (session != null) {
+      onLoggedIn();
+      return;
+    }
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Identifique-se', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Para realizar esta ação, é necessário entrar com seu PIN de operador.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMain, fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                hintText: '••••',
+                counterText: '',
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
+              ),
+              onChanged: (val) async {
+                if (val.length == 4) {
+                  final success = await ref.read(authProvider.notifier).loginByPin(val);
+                  if (success) {
+                    Navigator.pop(context);
+                    onLoggedIn();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('PIN inválido.')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showPaymentModal(
     BuildContext context,
@@ -105,14 +158,39 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       }
     }
 
-    ref.read(shiftProvider.notifier).addSale(amountPaid);
+    // Call real database DAOs to record the payment and update inventory (Ledger delta)
+    final paymentsDao = ref.read(paymentsDaoProvider);
+    final inventoryDao = ref.read(inventoryDaoProvider);
+
+    if (method.startsWith('Fiado:')) {
+      final customerName = method.substring(6);
+      await paymentsDao.processUnpaidCheckout(
+        orderId: orderId,
+        customerName: customerName,
+        amount: amountPaid,
+      );
+    } else {
+      await paymentsDao.processPayment(
+        orderId: orderId,
+        method: method,
+        amount: amountPaid,
+        customerId: ref.read(selectedCustomerProvider)?.id,
+      );
+    }
 
     if (paidItems.isNotEmpty) {
-      ref.read(inventoryProvider.notifier).decrementStockForItems(paidItems);
+      await inventoryDao.insertMovementsForOrder(
+        orderId: orderId,
+        items: paidItems,
+        userId: session.name,
+      );
     } else {
       if (amountPaid >= remaining - 0.05) {
-        ref.read(inventoryProvider.notifier)
-            .decrementStockForItems([...preparingList, ...deliveredList]);
+        await inventoryDao.insertMovementsForOrder(
+          orderId: orderId,
+          items: [...preparingList, ...deliveredList],
+          userId: session.name,
+        );
       }
     }
 
@@ -121,6 +199,9 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     });
 
     if (remaining - amountPaid <= 0.05) {
+      // Deduct raw ingredients based on product recipes
+      await inventoryDao.deductStockForOrder(orderId);
+
       // Complete checkout flow
       await ref.read(orderFsmProvider.notifier).payAndCloseOrder(
             orderId: orderId,
@@ -286,6 +367,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
             status: 'livre',
             x: 0,
             y: 0,
+            capacity: 4,
             updatedAt: 0,
           ),
         );
@@ -370,11 +452,10 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                         const SizedBox(height: 36),
                         NeonButton(
                           text: 'INICIAR ATENDIMENTO',
-                          onTap: () async {
-                            // FSM Transition: Free -> Occupied & CQRS Command: Open Order
+                          onTap: () => _ensureLoggedIn(context, () async {
                             await ref.read(tableFsmProvider.notifier).openTable(table);
                             await ref.read(orderFsmProvider.notifier).openOrder(table.id);
-                          },
+                          }),
                           isFullWidth: true,
                         ),
                       ],
@@ -419,8 +500,6 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                           categoryId: '',
                           name: 'Produto Desconhecido',
                           price: item.unitPrice,
-                          currentPrice: 0,
-                          stockQty: 0,
                           minStock: 0,
                           isActive: true,
                           updatedAt: 0,
@@ -428,6 +507,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                       );
 
                       final mappedItem = {
+                        'productId': product.id,
                         'name': product.name,
                         'quantity': item.quantity.toInt(),
                         'price': item.unitPrice,
@@ -515,7 +595,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                         shrinkWrap: true,
                                         physics: const NeverScrollableScrollPhysics(),
                                         itemCount: preparingList.length,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                                         itemBuilder: (_, i) => OrderItemTile(
                                           name: preparingList[i]['name'],
                                           qty: preparingList[i]['quantity'],
@@ -537,7 +617,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                         shrinkWrap: true,
                                         physics: const NeverScrollableScrollPhysics(),
                                         itemCount: deliveredList.length,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                                         itemBuilder: (_, i) => OrderItemTile(
                                           name: deliveredList[i]['name'],
                                           qty: deliveredList[i]['quantity'],
@@ -655,7 +735,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                             children: [
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: () => _showAddProductDialog(context, order.id),
+                                  onPressed: () => _ensureLoggedIn(context, () => _showAddProductDialog(context, order.id)),
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: AppColors.neonGreen),
                                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -671,7 +751,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                               Expanded(
                                 child: NeonButton(
                                   text: table.status == 'ocupada' ? 'SOLICITAR CONTA' : 'COBRAR MESA',
-                                  onTap: () async {
+                                  onTap: () => _ensureLoggedIn(context, () async {
                                     if (table.status == 'ocupada') {
                                       // Transition to billing status
                                       await ref.read(orderFsmProvider.notifier).requestOrderBill(
@@ -696,7 +776,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                         remaining,
                                       );
                                     }
-                                  },
+                                  }),
                                   isFullWidth: false,
                                 ),
                               ),

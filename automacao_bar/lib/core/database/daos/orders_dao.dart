@@ -154,6 +154,10 @@ class OrdersDao extends DatabaseAccessor<AppDatabase> with _$OrdersDaoMixin {
     return (select(syncQueue)..where((tbl) => tbl.syncStatus.equals(SyncStatus.pending.name))).get();
   }
 
+  Stream<List<SyncQueueData>> watchPendingSyncEvents() {
+    return (select(syncQueue)..where((tbl) => tbl.syncStatus.equals(SyncStatus.pending.name))).watch();
+  }
+
   Future<void> removeSyncedEvents(List<String> syncedIds) async {
     await (delete(syncQueue)..where((tbl) => tbl.id.isIn(syncedIds))).go();
   }

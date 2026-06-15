@@ -5,7 +5,8 @@ import 'package:automacao_bar/shared/presentation/components/neon_button.dart';
 import 'package:automacao_bar/features/pos/presentation/providers/cart_provider.dart';
 import 'package:automacao_bar/features/crm/application/customers_provider.dart';
 import 'package:automacao_bar/features/rh/application/shift_provider.dart';
-import 'package:automacao_bar/features/inventory/application/inventory_provider.dart';
+import 'package:automacao_bar/core/database/database_provider.dart';
+import 'package:uuid/uuid.dart';
 
 class SidebarFooter extends ConsumerWidget {
   final bool isMobileBottomSheet;
@@ -14,6 +15,46 @@ class SidebarFooter extends ConsumerWidget {
     super.key,
     required this.isMobileBottomSheet,
   });
+
+  Future<void> _processCheckout(WidgetRef ref, double total, List<CartItem> cartItems, String method) async {
+    final ordersDao = ref.read(ordersDaoProvider);
+    final paymentsDao = ref.read(paymentsDaoProvider);
+    final inventoryDao = ref.read(inventoryDaoProvider);
+
+    final orderId = const Uuid().v7();
+    const tableId = 'pos_quick_sale';
+
+    await ordersDao.openOrder(orderId, tableId);
+
+    for (final item in cartItems) {
+      await ordersDao.addOrderItem(
+        orderId: orderId,
+        productId: item.id,
+        quantity: item.quantity.toDouble(),
+        unitPrice: item.price,
+        notes: item.notes,
+      );
+    }
+
+    await paymentsDao.processPayment(
+      orderId: orderId,
+      method: method,
+      amount: total,
+    );
+
+    final List<Map<String, dynamic>> itemsList = cartItems.map((item) => {
+      'productId': item.id,
+      'quantity': item.quantity,
+    }).toList();
+
+    await inventoryDao.insertMovementsForOrder(
+      orderId: orderId,
+      items: itemsList,
+    );
+
+    ref.read(cartProvider.notifier).clearCart();
+    ref.read(selectedCustomerProvider.notifier).state = null;
+  }
 
   void _showCheckoutDialog(BuildContext context, WidgetRef ref, double total, List<CartItem> cartItems) {
     final selectedCustomer = ref.read(selectedCustomerProvider);
@@ -40,38 +81,38 @@ class SidebarFooter extends ConsumerWidget {
           ),
           if (selectedCustomer != null)
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 ref.read(customersProvider.notifier).chargeDebt(selectedCustomer.id, total);
                 ref.read(shiftProvider.notifier).addSale(total);
-                ref.read(inventoryProvider.notifier).decrementStockForCart(cartItems);
-                ref.read(cartProvider.notifier).clearCart();
-                ref.read(selectedCustomerProvider.notifier).state = null;
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Comanda lançada no Fiado de ${selectedCustomer.name}!'),
-                    backgroundColor: AppColors.neonGreen,
-                  ),
-                );
+                await _processCheckout(ref, total, cartItems, 'Lançar na Conta');
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Comanda lançada no Fiado de ${selectedCustomer.name}!'),
+                      backgroundColor: AppColors.neonGreen,
+                    ),
+                  );
+                }
               },
               child: const Text('Lançar Fiado', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
             ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               ref.read(shiftProvider.notifier).addSale(total);
-              ref.read(inventoryProvider.notifier).decrementStockForCart(cartItems);
-              ref.read(cartProvider.notifier).clearCart();
-              ref.read(selectedCustomerProvider.notifier).state = null;
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Comanda paga com sucesso!',
-                    style: TextStyle(color: Colors.black),
+              await _processCheckout(ref, total, cartItems, 'Dinheiro');
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Comanda paga com sucesso!',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                    backgroundColor: AppColors.neonGreen,
                   ),
-                  backgroundColor: AppColors.neonGreen,
-                ),
-              );
+                );
+              }
             },
             child: const Text('Confirmar Pago', style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
           ),

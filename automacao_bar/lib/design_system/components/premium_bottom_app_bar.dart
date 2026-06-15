@@ -1,8 +1,7 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../colors.dart';
 
-class PremiumBottomAppBar extends StatefulWidget {
+class PremiumBottomAppBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
   final List<PremiumNavItem> items;
@@ -16,48 +15,71 @@ class PremiumBottomAppBar extends StatefulWidget {
     required this.speedDialActions,
   });
 
-  @override
-  State<PremiumBottomAppBar> createState() => _PremiumBottomAppBarState();
-}
-
-class _PremiumBottomAppBarState extends State<PremiumBottomAppBar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _degOneTranslationAnimation;
-  late Animation<double> _rotationAnimation;
-
-  bool _isMenuOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
+  void _showSpeedDialMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 32),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0A0A0F) : Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          border: Border.all(
+            color: isDark ? const Color(0xFF1A1A24) : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1A24) : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'AÇÕES RÁPIDAS',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...speedDialActions.map((action) {
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                  child: Icon(action.icon, color: AppColors.primary),
+                ),
+                title: Text(
+                  action.label,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  action.onPressed();
+                },
+              );
+            }),
+          ],
+        ),
+      ),
     );
-    _degOneTranslationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 45.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-      if (_isMenuOpen) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    });
   }
 
   @override
@@ -65,47 +87,14 @@ class _PremiumBottomAppBarState extends State<PremiumBottomAppBar>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     
-    // We expect 2 items if we have a central FAB, or we align them nicely.
-    // The spec says: "Bottom navigation com no máximo 4 tabs visíveis. BottomAppBar minimalista + FAB Central Animado."
-    // Let's divide items: first half on the left, second half on the right.
-    final int halfLength = (widget.items.length / 2).ceil();
-    final leftItems = widget.items.sublist(0, halfLength);
-    final rightItems = widget.items.sublist(halfLength);
+    final int halfLength = (items.length / 2).ceil();
+    final leftItems = items.sublist(0, halfLength);
+    final rightItems = items.sublist(halfLength);
 
     return Stack(
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
       children: [
-        // Speed dial menu overlays
-        if (_isMenuOpen)
-          Positioned(
-            bottom: 80,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(widget.speedDialActions.length, (index) {
-                final action = widget.speedDialActions[index];
-                return ScaleTransition(
-                  scale: _degOneTranslationAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: FloatingActionButton.extended(
-                      heroTag: 'speed_dial_$index',
-                      onPressed: () {
-                        _toggleMenu();
-                        action.onPressed();
-                      },
-                      label: Text(action.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                      icon: Icon(action.icon, size: 20),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          
-        // The bottom app bar itself
         BottomAppBar(
           padding: EdgeInsets.zero,
           notchMargin: 8.0,
@@ -131,8 +120,8 @@ class _PremiumBottomAppBarState extends State<PremiumBottomAppBar>
                     children: List.generate(leftItems.length, (index) {
                       final actualIdx = index;
                       final item = leftItems[index];
-                      final isSelected = widget.currentIndex == actualIdx;
-                      return _buildNavItem(item, isSelected, actualIdx);
+                      final isSelected = currentIndex == actualIdx;
+                      return _buildNavItem(context, item, isSelected, actualIdx);
                     }),
                   ),
                 ),
@@ -147,8 +136,8 @@ class _PremiumBottomAppBarState extends State<PremiumBottomAppBar>
                     children: List.generate(rightItems.length, (index) {
                       final actualIdx = halfLength + index;
                       final item = rightItems[index];
-                      final isSelected = widget.currentIndex == actualIdx;
-                      return _buildNavItem(item, isSelected, actualIdx);
+                      final isSelected = currentIndex == actualIdx;
+                      return _buildNavItem(context, item, isSelected, actualIdx);
                     }),
                   ),
                 ),
@@ -160,38 +149,30 @@ class _PremiumBottomAppBarState extends State<PremiumBottomAppBar>
         // Central FAB
         Positioned(
           bottom: 24,
-          child: AnimatedBuilder(
-            animation: _rotationAnimation,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: _rotationAnimation.value * math.pi / 180,
-                child: FloatingActionButton(
-                  heroTag: 'central_fab',
-                  backgroundColor: AppColors.primary,
-                  elevation: 4,
-                  shape: const CircleBorder(),
-                  onPressed: _toggleMenu,
-                  child: const Icon(
-                    Icons.add,
-                    color: Colors.black,
-                    size: 28,
-                  ),
-                ),
-              );
-            },
+          child: FloatingActionButton(
+            heroTag: 'central_fab',
+            backgroundColor: AppColors.primary,
+            elevation: 4,
+            shape: const CircleBorder(),
+            onPressed: () => _showSpeedDialMenu(context),
+            child: const Icon(
+              Icons.add,
+              color: Colors.black,
+              size: 28,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildNavItem(PremiumNavItem item, bool isSelected, int index) {
+  Widget _buildNavItem(BuildContext context, PremiumNavItem item, bool isSelected, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = AppColors.primary;
     final inactiveColor = isDark ? AppColors.textMutedDark : AppColors.textMutedLight;
 
     return InkWell(
-      onTap: () => widget.onTap(index),
+      onTap: () => onTap(index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:automacao_bar/shared/presentation/components/product_card.dart';
-import 'package:automacao_bar/features/management/application/products_provider.dart';
+import 'package:automacao_bar/core/database/app_database.dart';
+import 'package:automacao_bar/core/database/database_provider.dart';
 import 'package:automacao_bar/features/crm/application/customers_provider.dart';
 import 'package:automacao_bar/features/pos/presentation/widgets/item_notes_modal.dart';
 import 'package:automacao_bar/features/pos/presentation/widgets/link_customer_dialog.dart';
@@ -12,7 +13,7 @@ class CatalogGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final products = ref.watch(productsProvider);
+    final productsAsync = ref.watch(watchAllProductsProvider);
     final selectedCustomer = ref.watch(selectedCustomerProvider);
     final customers = ref.watch(customersProvider);
 
@@ -92,35 +93,51 @@ class CatalogGrid extends ConsumerWidget {
 
         // Grid de produtos
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, gridConstraints) {
-              int crossAxisCount = 2;
-              if (gridConstraints.maxWidth > 900) crossAxisCount = 4;
-              else if (gridConstraints.maxWidth > 650) crossAxisCount = 3;
+          child: productsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.neonGreen)),
+            error: (err, _) => Center(child: Text('Erro: $err', style: const TextStyle(color: AppColors.danger))),
+            data: (products) {
+              if (products.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Nenhum produto cadastrado no cardápio.',
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                );
+              }
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(24),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return ProductCard(
-                    name: product.name,
-                    price: product.price,
-                    isHappyHour: product.isHappyHour,
-                    isSoldOut: product.isSoldOut,
-                    onAdd: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) =>
-                            ItemNotesModal(product: product),
+              return LayoutBuilder(
+                builder: (context, gridConstraints) {
+                  int crossAxisCount = 2;
+                  if (gridConstraints.maxWidth > 900) {
+                    crossAxisCount = 4;
+                  } else if (gridConstraints.maxWidth > 650) crossAxisCount = 3;
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return ProductCard(
+                        name: product.name,
+                        price: product.price,
+                        isHappyHour: false,
+                        isSoldOut: false,
+                        onAdd: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) =>
+                                ItemNotesModal(product: product),
+                          );
+                        },
                       );
                     },
                   );

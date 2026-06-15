@@ -69,7 +69,7 @@ class PosOrderPanel extends ConsumerWidget {
                               child: Text(item.product.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
                             ),
                             Text(
-                              CurrencyFormatter.format(item.product.currentPrice * item.quantity),
+                              CurrencyFormatter.format((item.product.price * 100).round() * item.quantity),
                               style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
                             ),
                           ],

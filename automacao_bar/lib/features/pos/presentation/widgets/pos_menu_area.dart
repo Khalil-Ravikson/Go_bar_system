@@ -148,7 +148,7 @@ class _PosMenuAreaState extends ConsumerState<PosMenuArea> {
               // Usando o nosso novo "Lego" do Design System!
               return AppProductCard(
                 name: product.name,
-                priceInCents: product.currentPrice,
+                priceInCents: (product.price * 100).round(),
                 onTap: () {
                   ref.read(cartProvider.notifier).addProduct(product);
                   ScaffoldMessenger.of(context).clearSnackBars();
