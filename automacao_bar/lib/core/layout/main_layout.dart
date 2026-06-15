@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import '../../features/auth/application/auth_provider.dart';
+import '../../core/database/app_database.dart';
+import '../../core/database/database_provider.dart';
+import '../../core/providers/repository_providers.dart';
+import '../../features/cash_register/application/cash_register_provider.dart';
+import '../../core/theme/app_colors.dart' as theme_colors;
 
 import '../../design_system/colors.dart';
 import '../../design_system/components/premium_bottom_app_bar.dart';
@@ -65,6 +71,256 @@ class MainLayout extends ConsumerWidget {
 
   const MainLayout({super.key, required this.child});
 
+  void _showNovaComandaDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme_colors.AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Nova Comanda', style: TextStyle(color: theme_colors.AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: theme_colors.AppColors.textMain),
+          decoration: const InputDecoration(
+            labelText: 'Número da Mesa',
+            labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.surfaceLight)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.neonGreen)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: theme_colors.AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final number = int.tryParse(controller.text.trim());
+              if (number == null || number <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Insira um número de mesa válido.')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+
+              // Auto-insert table to database if it does not exist
+              final tableRepo = ref.read(tableRepositoryProvider);
+              final tablesList = await tableRepo.watchTables().first;
+              final exists = tablesList.any((t) => t.number == number);
+              if (!exists) {
+                await tableRepo.insertTable(
+                  RestaurantTable(
+                    id: const Uuid().v7(),
+                    number: number,
+                    status: 'livre',
+                    x: 120.0,
+                    y: 120.0,
+                    updatedAt: DateTime.now().millisecondsSinceEpoch,
+                  ),
+                );
+              }
+
+              // Navigate
+              context.push('/table-details?table=$number');
+            },
+            child: const Text('Criar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNovoUsuarioDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final pinController = TextEditingController();
+    UserRole selectedRole = UserRole.waiter;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: theme_colors.AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Novo Usuário', style: TextStyle(color: theme_colors.AppColors.textMain, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: theme_colors.AppColors.textMain),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Funcionário',
+                    labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.surfaceLight)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.neonGreen)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pinController,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  style: const TextStyle(color: theme_colors.AppColors.textMain),
+                  decoration: const InputDecoration(
+                    labelText: 'Código PIN (4 dígitos)',
+                    labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.surfaceLight)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.neonGreen)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<UserRole>(
+                  value: selectedRole,
+                  dropdownColor: theme_colors.AppColors.surface,
+                  style: const TextStyle(color: theme_colors.AppColors.textMain),
+                  decoration: const InputDecoration(
+                    labelText: 'Cargo',
+                    labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+                  ),
+                  items: UserRole.values.map((role) {
+                    return DropdownMenuItem<UserRole>(
+                      value: role,
+                      child: Text(role.name.toUpperCase(), style: const TextStyle(color: theme_colors.AppColors.textMain)),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedRole = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar', style: TextStyle(color: theme_colors.AppColors.textMuted)),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final pin = pinController.text.trim();
+                if (name.isEmpty || pin.length < 4) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Insira o nome e um PIN de 4 dígitos.')),
+                  );
+                  return;
+                }
+                Navigator.pop(context);
+
+                final db = ref.read(databaseProvider);
+                await db.into(db.users).insert(
+                  User(
+                    id: const Uuid().v7(),
+                    name: name,
+                    pinHash: pin,
+                    role: selectedRole.name,
+                    isActive: true,
+                    updatedAt: DateTime.now().millisecondsSinceEpoch,
+                  ),
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Usuário $name cadastrado com sucesso!'),
+                    backgroundColor: theme_colors.AppColors.neonGreen,
+                  ),
+                );
+              },
+              child: const Text('Cadastrar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRegistrarDespesaDialog(BuildContext context, WidgetRef ref) {
+    final amountController = TextEditingController();
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme_colors.AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Registrar Despesa', style: TextStyle(color: theme_colors.AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: theme_colors.AppColors.textMain),
+              decoration: const InputDecoration(
+                labelText: 'Valor (R\$)',
+                labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.surfaceLight)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.neonGreen)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              style: const TextStyle(color: theme_colors.AppColors.textMain),
+              decoration: const InputDecoration(
+                labelText: 'Motivo / Descrição',
+                labelStyle: TextStyle(color: theme_colors.AppColors.textMuted),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.surfaceLight)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme_colors.AppColors.neonGreen)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: theme_colors.AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () {
+              final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
+              final reason = reasonController.text.trim();
+              if (amount <= 0 || reason.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Insira um valor e motivo válidos.')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+
+              final session = ref.read(authProvider);
+              final cashNotifier = ref.read(cashRegisterProvider.notifier);
+              final cashState = ref.read(cashRegisterProvider);
+
+              if (!cashState.isOpen) {
+                cashNotifier.openRegister(0.0, 'Abertura automática para despesa', session.name);
+              }
+
+              cashNotifier.addTransaction(
+                amount: amount,
+                type: CashTransactionType.sangria,
+                reason: reason,
+                user: session.name,
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Despesa de R\$ ${amount.toStringAsFixed(2)} registrada com sucesso!'),
+                  backgroundColor: theme_colors.AppColors.neonGreen,
+                ),
+              );
+            },
+            child: const Text('Registrar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authProvider);
@@ -96,21 +352,17 @@ class MainLayout extends ConsumerWidget {
           PremiumSpeedDialAction(
             icon: Icons.receipt,
             label: 'Nova Comanda',
-            onPressed: () {
-              // Action or navigation to new comanda
-            },
+            onPressed: () => _showNovaComandaDialog(context, ref),
           ),
           PremiumSpeedDialAction(
             icon: Icons.person_add,
             label: 'Novo Usuário',
-            onPressed: () => context.push('/drawer/usuarios'),
+            onPressed: () => _showNovoUsuarioDialog(context, ref),
           ),
           PremiumSpeedDialAction(
             icon: Icons.trending_down,
             label: 'Registrar Despesa',
-            onPressed: () {
-              // Action or navigation to register expense
-            },
+            onPressed: () => _showRegistrarDespesaDialog(context, ref),
           ),
         ];
       } else if (isWaiter) {
@@ -118,9 +370,7 @@ class MainLayout extends ConsumerWidget {
           PremiumSpeedDialAction(
             icon: Icons.receipt,
             label: 'Nova Comanda',
-            onPressed: () {
-              // Waiter action
-            },
+            onPressed: () => _showNovaComandaDialog(context, ref),
           ),
         ];
       } else if (isCaixa) {
@@ -128,9 +378,7 @@ class MainLayout extends ConsumerWidget {
           PremiumSpeedDialAction(
             icon: Icons.monetization_on,
             label: 'Receber Pagamento',
-            onPressed: () {
-              // Caixa action
-            },
+            onPressed: () {},
           ),
         ];
       }

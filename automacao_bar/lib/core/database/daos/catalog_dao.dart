@@ -10,63 +10,46 @@ part 'catalog_dao.g.dart';
 class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
   CatalogDao(super.db);
 
-  // ==========================================
-  // MÉTODOS DE LEITURA (O Salão)
-  // ==========================================
-
-  /// Retorna todas as categorias ativas em tempo real
   Stream<List<Category>> watchCategories() {
-    return (select(categories)
-          ..where((tbl) => tbl.isActive.equals(true))
-          ..orderBy([(t) => OrderingTerm(expression: t.name)]))
-        .watch();
+    return select(categories).watch();
   }
 
-  /// Retorna todos os produtos ativos de uma categoria específica
   Stream<List<Product>> watchProductsByCategory(String categoryId) {
-    return (select(products)
-          ..where((tbl) => tbl.categoryId.equals(categoryId))
-          ..where((tbl) => tbl.isAvailable.equals(true)) // Só exibe se tiver em estoque
-          ..orderBy([(t) => OrderingTerm(expression: t.name)]))
-        .watch();
+    return (select(products)..where((tbl) => tbl.categoryId.equals(categoryId))).watch();
   }
 
-  // ==========================================
-  // MÉTODOS DE ESCRITA (A Gestão Manual)
-  // ==========================================
-
-  /// Insere uma nova categoria
   Future<void> insertCategory(String name, String tenantId) async {
-    final uuid = const Uuid().v7(); // ID gerado no cliente
-    
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final uuid = const Uuid().v7();
     await into(categories).insert(
-      CategoriesCompanion.insert(
+      Category(
         id: uuid,
-        tenantId: tenantId,
         name: name,
-        isActive: const Value(true), // Ativo por padrão
+        colorCode: null,
+        updatedAt: now,
       ),
     );
   }
 
-  /// Insere um novo produto
   Future<void> insertProduct({
     required String tenantId,
     required String categoryId,
     required String name,
-    required int currentPrice, // Em centavos para evitar erro de float
+    required int currentPrice,
   }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
     final uuid = const Uuid().v7();
-    
     await into(products).insert(
-      ProductsCompanion.insert(
+      Product(
         id: uuid,
-        tenantId: tenantId,
         categoryId: categoryId,
         name: name,
         price: currentPrice / 100.0,
+        stockQty: 0,
+        minStock: 0,
+        isActive: true,
+        updatedAt: now,
         currentPrice: currentPrice,
-        isAvailable: const Value(true), // Em estoque por padrão
       ),
     );
   }

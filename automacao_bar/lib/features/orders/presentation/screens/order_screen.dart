@@ -180,7 +180,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.go('/pos');
+              context.go('/home/pdv');
             },
             child: const Text('Voltar ao Início',
                 style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
@@ -395,7 +395,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         Row(children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => context.go('/pos'),
+              onPressed: () => context.go('/home/pdv'),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.neonGreen),
                 padding: const EdgeInsets.symmetric(vertical: 14),

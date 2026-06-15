@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 
 import 'tables.dart';
 import 'daos/orders_dao.dart';
+import 'daos/products_dao.dart';
+import 'daos/tables_dao.dart';
 import 'daos/catalog_dao.dart';
 
 import 'connection/connection.dart'
@@ -12,27 +14,29 @@ part 'app_database.g.dart';
 
 @DriftDatabase(
   tables: [
-    Orders,
-    OrderItems,
-    SyncOutbox,
+    Users,
     Categories,
     Products,
-    Ingredients,
-    ProductIngredients,
-    Customers,
-    Promotions,
-    Shifts,
-    Wastes,
-    Suppliers,
-    PurchaseOrders,
-    InventoryLogs,
-    Couriers,
-    DeliveryOrders,
+    Tables,
+    Orders,
+    OrderItems,
+    Payments,
+    SyncQueue,
   ],
-  daos: [OrdersDao, CatalogDao],
+  daos: [
+    OrdersDao,
+    ProductsDao,
+    TablesDao,
+    CatalogDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(impl.openConnection());
+
+  late final OrdersDao ordersDao = OrdersDao(this);
+  late final ProductsDao productsDao = ProductsDao(this);
+  late final TablesDao tablesDao = TablesDao(this);
+  late final CatalogDao catalogDao = CatalogDao(this);
 
   @override
   int get schemaVersion => 1;

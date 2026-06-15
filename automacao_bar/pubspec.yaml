@@ -49,6 +49,8 @@ dependencies:
   url_launcher: ^6.3.2
   pdf: ^3.11.1
   google_fonts: ^8.1.0
+  supabase_flutter: ^2.5.0
+  riverpod_annotation: ^4.0.2
 
 dev_dependencies:
   flutter_test:

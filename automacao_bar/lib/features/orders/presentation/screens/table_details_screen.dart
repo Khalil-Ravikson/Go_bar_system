@@ -179,7 +179,7 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
-                context.go('/pos'); // Go back to POS
+                context.go('/home/pdv'); // Go back to POS
               },
               child: const Text(
                 'Voltar ao Início',

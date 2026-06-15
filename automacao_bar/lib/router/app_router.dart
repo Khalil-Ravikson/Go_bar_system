@@ -10,6 +10,7 @@ import '../features/auth/application/auth_provider.dart';
 import '../features/tables/presentation/screens/interactive_map_screen.dart';
 import '../features/rh/presentation/screens/shift_management_screen.dart';
 import '../features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../features/orders/presentation/screens/order_screen.dart';
 
 import '../core/layout/main_layout.dart';
 
@@ -114,6 +115,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/home/config',
             pageBuilder: (context, state) => const NoTransitionPage(child: SettingsScreen()),
+          ),
+          GoRoute(
+            path: '/table-details',
+            pageBuilder: (context, state) {
+              final table = state.uri.queryParameters['table'] ?? '1';
+              return NoTransitionPage(child: OrderScreen(tableNumber: table));
+            },
           ),
 
           // === DRAWER / SECONDARY MANAGEMENT ROUTES ===

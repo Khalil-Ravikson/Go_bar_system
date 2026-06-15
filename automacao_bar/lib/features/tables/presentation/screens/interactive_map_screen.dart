@@ -1,107 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import 'package:automacao_bar/core/theme/app_colors.dart';
 import 'package:automacao_bar/design_system/components/table_card.dart';
+import 'package:automacao_bar/core/database/app_database.dart';
+import 'package:automacao_bar/core/providers/repository_providers.dart';
 
-class TablePosition {
-  final String id;
-  final String number;
-  final double x;
-  final double y;
-  final TableStatus status;
-  final int elapsedMinutes;
-  final String? value;
-
-  TablePosition({
-    required this.id,
-    required this.number,
-    required this.x,
-    required this.y,
-    required this.status,
-    required this.elapsedMinutes,
-    this.value,
-  });
-
-  TablePosition copyWith({
-    String? id,
-    String? number,
-    double? x,
-    double? y,
-    TableStatus? status,
-    int? elapsedMinutes,
-    String? value,
-  }) {
-    return TablePosition(
-      id: id ?? this.id,
-      number: number ?? this.number,
-      x: x ?? this.x,
-      y: y ?? this.y,
-      status: status ?? this.status,
-      elapsedMinutes: elapsedMinutes ?? this.elapsedMinutes,
-      value: value ?? this.value,
-    );
-  }
-}
-
-class TablePositionsNotifier extends Notifier<List<TablePosition>> {
-  @override
-  List<TablePosition> build() {
-    return [
-      TablePosition(id: 't1', number: '01', x: 40, y: 80, status: TableStatus.occupied, elapsedMinutes: 12, value: 'R\$ 78,90'),
-      TablePosition(id: 't2', number: '02', x: 200, y: 80, status: TableStatus.free, elapsedMinutes: 0),
-      TablePosition(id: 't3', number: '03', x: 360, y: 80, status: TableStatus.occupied, elapsedMinutes: 32, value: 'R\$ 192,50'), // Critical! Pulse.
-      TablePosition(id: 't4', number: '04', x: 520, y: 80, status: TableStatus.occupied, elapsedMinutes: 5, value: 'R\$ 34,90'),
-      
-      TablePosition(id: 't5', number: '05', x: 40, y: 260, status: TableStatus.occupied, elapsedMinutes: 28, value: 'R\$ 120,00'), // Critical! Pulse.
-      TablePosition(id: 't6', number: '06', x: 200, y: 260, status: TableStatus.closing, elapsedMinutes: 18, value: 'R\$ 320,00'),
-      TablePosition(id: 't7', number: '07', x: 360, y: 260, status: TableStatus.free, elapsedMinutes: 0),
-      TablePosition(id: 't8', number: '08', x: 520, y: 260, status: TableStatus.occupied, elapsedMinutes: 14, value: 'R\$ 55,00'),
-    ];
-  }
-
-  void updatePosition(String id, double x, double y) {
-    state = state.map((t) {
-      if (t.id == id) {
-        return t.copyWith(x: x, y: y);
-      }
-      return t;
-    }).toList();
-  }
-}
-
-final tablePositionsProvider = NotifierProvider<TablePositionsNotifier, List<TablePosition>>(() {
-  return TablePositionsNotifier();
+final tablesStreamProvider = StreamProvider<List<RestaurantTable>>((ref) {
+  return ref.watch(tableRepositoryProvider).watchTables();
 });
 
-class InteractiveMapScreen extends ConsumerWidget {
+class InteractiveMapScreen extends ConsumerStatefulWidget {
   const InteractiveMapScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tables = ref.watch(tablePositionsProvider);
-    final Size size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 800;
+  ConsumerState<InteractiveMapScreen> createState() => _InteractiveMapScreenState();
+}
 
-    // Floor plan boundaries
-    final double mapWidth = isDesktop ? size.width - 280 : size.width - 32;
-    final double mapHeight = 500.0;
+class _InteractiveMapScreenState extends ConsumerState<InteractiveMapScreen> {
+  // Temporary coordinates during dragging to prevent high frequency database writes
+  final Map<String, Offset> _tempPositions = {};
+
+  // Canvas size
+  static const double canvasWidth = 800.0;
+  static const double canvasHeight = 600.0;
+  static const double cardSize = 135.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final tablesAsync = ref.watch(tablesStreamProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mapa Interativo do Salão', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Mapa Interativo do Salão',
+          style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AppColors.surface,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: AppColors.neonGreen),
+            tooltip: 'Adicionar Mesa',
+            onPressed: () => _showAddTableDialog(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Info Banner
-              Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Info Header
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -122,7 +77,7 @@ class InteractiveMapScreen extends ConsumerWidget {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '💡 Dica: Pressione e arraste qualquer mesa para reorganizar a planta do bar em tempo real. Mesas piscando em laranja/vermelho indicam atraso no atendimento (> 25 min).',
+                            '💡 Arraste as mesas para reposicionar a planta do salão. Use pinça para zoom. Toque longo em uma mesa para editar ou excluir.',
                             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                           ),
                         ],
@@ -131,117 +86,188 @@ class InteractiveMapScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
 
-              // Salon Floor Layout Canvas
-              Container(
-                width: mapWidth,
-                height: mapHeight,
-                decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.surfaceLight, width: 2),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    children: [
-                      // Floor details mockup backgrounds
-                      Positioned(
-                        left: 16,
-                        top: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.surfaceLight),
+            // Canvas containing Interactive Map
+            Expanded(
+              child: tablesAsync.when(
+                data: (tablesList) {
+                  if (tablesList.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.table_bar_outlined, size: 64, color: AppColors.textMuted),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Nenhuma mesa cadastrada.',
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 16),
                           ),
-                          child: const Text('BALCÃO / BAR', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      Positioned(
-                        right: 16,
-                        top: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.surfaceLight),
-                          ),
-                          child: const Text('SAÍDA DA COZINHA', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      Positioned(
-                        left: 16,
-                        bottom: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.surfaceLight),
-                          ),
-                          child: const Text('ENTRADA / DECK', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-
-                      // Positioned draggable tables
-                      ...tables.map((table) {
-                        return Positioned(
-                          left: table.x.clamp(0.0, mapWidth - 145),
-                          top: table.y.clamp(0.0, mapHeight - 145),
-                          child: GestureDetector(
-                            onPanUpdate: (details) {
-                              final newX = (table.x + details.delta.dx).clamp(0.0, mapWidth - 145);
-                              final newY = (table.y + details.delta.dy).clamp(0.0, mapHeight - 145);
-                              ref.read(tablePositionsProvider.notifier).updatePosition(table.id, newX, newY);
-                            },
-                            child: SizedBox(
-                              width: 135,
-                              height: 135,
-                              child: TableCard(
-                                tableNumber: table.number,
-                                status: table.status,
-                                elapsedMinutes: table.elapsedMinutes,
-                                infoText: table.status == TableStatus.free
-                                    ? 'Livre'
-                                    : table.elapsedMinutes > 0
-                                        ? 'Ocupada • ${table.elapsedMinutes} min'
-                                        : 'Aguardando Conta',
-                                valueText: table.value,
-                                onTap: () {
-                                  // Navigate to Table Details screen with selected table number query parameter
-                                  context.push('/table-details?table=${table.number}');
-                                },
-                              ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () => _showAddTableDialog(context),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Adicionar Primeira Mesa'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.neonGreen,
+                              foregroundColor: Colors.black,
                             ),
                           ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                        ],
+                      ),
+                    );
+                  }
 
-              // Heatmap legend explanation
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.surfaceLight, width: 2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: InteractiveViewer(
+                          constrained: false,
+                          boundaryMargin: const EdgeInsets.all(120.0),
+                          minScale: 0.4,
+                          maxScale: 2.0,
+                          child: Container(
+                            width: canvasWidth,
+                            height: canvasHeight,
+                            color: AppColors.surface.withValues(alpha: 0.1),
+                            child: Stack(
+                              children: [
+                                // Background mock sections
+                                Positioned(
+                                  left: 24,
+                                  top: 24,
+                                  child: _buildSectionLabel('BALCÃO / BAR'),
+                                ),
+                                Positioned(
+                                  right: 24,
+                                  top: 24,
+                                  child: _buildSectionLabel('SAÍDA DA COZINHA'),
+                                ),
+                                Positioned(
+                                  left: 24,
+                                  bottom: 24,
+                                  child: _buildSectionLabel('ENTRADA / DECK'),
+                                ),
+
+                                // Draggable tables
+                                ...tablesList.map((table) {
+                                  final tempPos = _tempPositions[table.id];
+                                  final x = tempPos?.dx ?? table.x;
+                                  final y = tempPos?.dy ?? table.y;
+
+                                  // Determine status & mock details
+                                  TableStatus status;
+                                  int elapsedMinutes = 0;
+                                  String? valueText;
+
+                                  if (table.status == 'ocupada') {
+                                    status = TableStatus.occupied;
+                                    elapsedMinutes = table.number % 2 == 0 ? 12 : 28;
+                                    valueText = table.number % 2 == 0 ? 'R\$ 78,90' : 'R\$ 192,50';
+                                  } else if (table.status == 'fechamento') {
+                                    status = TableStatus.closing;
+                                    elapsedMinutes = 18;
+                                    valueText = 'R\$ 320,00';
+                                  } else {
+                                    status = TableStatus.free;
+                                    elapsedMinutes = 0;
+                                    valueText = null;
+                                  }
+
+                                  return Positioned(
+                                    left: x,
+                                    top: y,
+                                    child: GestureDetector(
+                                      onPanUpdate: (details) {
+                                        final double newX = (x + details.delta.dx).clamp(0.0, canvasWidth - cardSize);
+                                        final double newY = (y + details.delta.dy).clamp(0.0, canvasHeight - cardSize);
+                                        setState(() {
+                                          _tempPositions[table.id] = Offset(newX, newY);
+                                        });
+                                      },
+                                      onPanEnd: (details) {
+                                        final finalOffset = _tempPositions[table.id];
+                                        if (finalOffset != null) {
+                                          ref.read(tableRepositoryProvider).updateTablePosition(
+                                                table.id,
+                                                finalOffset.dx,
+                                                finalOffset.dy,
+                                              );
+                                        }
+                                      },
+                                      onLongPress: () => _showEditTableMenu(context, table),
+                                      child: SizedBox(
+                                        width: cardSize,
+                                        height: cardSize,
+                                        child: TableCard(
+                                          tableNumber: table.number.toString().padLeft(2, '0'),
+                                          status: status,
+                                          elapsedMinutes: elapsedMinutes,
+                                          infoText: status == TableStatus.free
+                                              ? 'Livre'
+                                              : elapsedMinutes > 0
+                                                  ? 'Ocupada • $elapsedMinutes min'
+                                                  : 'Aguardando Conta',
+                                          valueText: valueText,
+                                          onTap: () {
+                                            context.push('/table-details?table=${table.number}');
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Erro ao carregar salão: $err', style: const TextStyle(color: Colors.red))),
+              ),
+            ),
+
+            // Heatmap Legends
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
                 children: [
                   _buildLegendItem(Colors.grey, 'Livre'),
-                  const SizedBox(width: 24),
                   _buildLegendItem(AppColors.neonGreen, 'Atendimento Normal'),
-                  const SizedBox(width: 24),
                   _buildLegendItem(AppColors.orange, 'Conta Fechamento'),
-                  const SizedBox(width: 24),
                   _buildLegendItem(AppColors.danger, 'Atraso Crítico (> 25 min)'),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -261,6 +287,178 @@ class InteractiveMapScreen extends ConsumerWidget {
         const SizedBox(width: 8),
         Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
       ],
+    );
+  }
+
+  // === TABLE CRUD DIALOGS ===
+
+  void _showAddTableDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Adicionar Mesa', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: AppColors.textMain),
+          decoration: const InputDecoration(
+            labelText: 'Número da Mesa',
+            labelStyle: TextStyle(color: AppColors.textMuted),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final number = int.tryParse(controller.text);
+              if (number == null || number <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Insira um número de mesa válido.')),
+                );
+                return;
+              }
+
+              // Create default position
+              final newTable = RestaurantTable(
+                id: const Uuid().v7(),
+                number: number,
+                status: 'livre',
+                x: 100.0 + (number * 10) % 300,
+                y: 100.0 + (number * 10) % 200,
+                updatedAt: DateTime.now().millisecondsSinceEpoch,
+              );
+
+              await ref.read(tableRepositoryProvider).insertTable(newTable);
+              Navigator.pop(context);
+            },
+            child: const Text('Cadastrar', style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTableMenu(BuildContext context, RestaurantTable table) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'Mesa ${table.number.toString().padLeft(2, '0')}',
+                style: const TextStyle(color: AppColors.textMain, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppColors.neonGreen),
+              title: const Text('Alterar Número da Mesa', style: TextStyle(color: AppColors.textMain)),
+              onTap: () {
+                Navigator.pop(context);
+                _showEditNumberDialog(context, table);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+              title: const Text('Remover Mesa', style: TextStyle(color: AppColors.danger)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteTable(context, table);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditNumberDialog(BuildContext context, RestaurantTable table) {
+    final controller = TextEditingController(text: table.number.toString());
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Editar Número', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: AppColors.textMain),
+          decoration: const InputDecoration(
+            labelText: 'Novo Número',
+            labelStyle: TextStyle(color: AppColors.textMuted),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final number = int.tryParse(controller.text);
+              if (number == null || number <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Insira um número válido.')),
+                );
+                return;
+              }
+              await ref.read(tableRepositoryProvider).updateTableNumber(table.id, number);
+              Navigator.pop(context);
+            },
+            child: const Text('Salvar', style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteTable(BuildContext context, RestaurantTable table) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Excluir Mesa', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Deseja realmente remover a Mesa ${table.number.toString().padLeft(2, '0')}?',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(tableRepositoryProvider).deleteTable(table.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Excluir', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 }

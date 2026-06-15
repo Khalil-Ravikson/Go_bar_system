@@ -1,24 +1,42 @@
-import 'package:automacao_bar/core/database/daos/catalog_dao.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app_database.dart';
 import 'daos/orders_dao.dart';
+import 'daos/products_dao.dart';
+import 'daos/tables_dao.dart';
+import 'daos/catalog_dao.dart';
 import '../network/sync_service.dart';
- // Adicione este import no topo
+
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(() => db.close());
   return db;
 });
 
-// Fornece o DAO para o resto do app
+final syncServiceProvider = Provider<SyncService>((ref) {
+  final dao = ref.watch(ordersDaoProvider);
+  return SyncService(dao);
+});
+
+final catalogDaoProvider = Provider<CatalogDao>((ref) {
+  return ref.watch(databaseProvider).catalogDao;
+});
+
 final ordersDaoProvider = Provider<OrdersDao>((ref) {
   return ref.watch(databaseProvider).ordersDao;
 });
 
-// Fornece a LISTA AO VIVO de mesas abertas
+final productsDaoProvider = Provider<ProductsDao>((ref) {
+  return ref.watch(databaseProvider).productsDao;
+});
+
+final tablesDaoProvider = Provider<TablesDao>((ref) {
+  return ref.watch(databaseProvider).tablesDao;
+});
+
+// Fornece a LISTA AO VIVO de comandas ativas
 final openOrdersProvider = StreamProvider<List<Order>>((ref) {
   final dao = ref.watch(ordersDaoProvider);
-  return dao.watchOpenOrders();
+  return dao.watchActiveOrders();
 });
 
 // Provedor que busca os itens de uma comanda específica
@@ -26,23 +44,12 @@ final orderItemsProvider = StreamProvider.family<List<OrderItem>, String>((ref, 
   final dao = ref.watch(ordersDaoProvider);
   return dao.watchOrderItems(orderId);
 });
-// Fornece o Serviço de Sincronização
-final syncServiceProvider = Provider<SyncService>((ref) {
-  final dao = ref.watch(ordersDaoProvider);
-  return SyncService(dao);
-});
-
-// Provedor do DAO de Catálogo
-final catalogDaoProvider = Provider<CatalogDao>((ref) {
-  final db = ref.watch(databaseProvider);
-  return db.catalogDao;
-});
 
 // Provedores de Leitura (Para a tela do Garçom)
 final watchCategoriesProvider = StreamProvider<List<Category>>((ref) {
-  return ref.watch(catalogDaoProvider).watchCategories();
+  return ref.watch(productsDaoProvider).watchActiveCategories();
 });
 
 final watchProductsByCategoryProvider = StreamProvider.family<List<Product>, String>((ref, categoryId) {
-  return ref.watch(catalogDaoProvider).watchProductsByCategory(categoryId);
+  return ref.watch(productsDaoProvider).watchProductsByCategory(categoryId);
 });

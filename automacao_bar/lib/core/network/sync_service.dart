@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../database/daos/orders_dao.dart';
+import '../database/app_database.dart';
 
 class SyncService {
   final OrdersDao _dao;
@@ -27,10 +28,10 @@ class SyncService {
       // 2. Mapeia os dados do banco para o formato JSON (DTO) que o Go espera
       final List<Map<String, dynamic>> eventsJson = pendingEvents.map((e) => {
         'id': e.id,
-        'event_type': e.eventType,
-        'aggregate_id': e.aggregateId,
-        'payload': e.payload,
-        'occurred_at': e.occurredAt,
+        'table_name': e.targetTable,
+        'operation': e.operation,
+        'payload': e.payloadJson,
+        'created_at': e.createdAt,
       }).toList();
 
       // 3. Faz o POST para a nossa API em Go
