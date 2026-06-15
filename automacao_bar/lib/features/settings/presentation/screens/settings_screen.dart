@@ -115,89 +115,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final syncState = ref.watch(syncProvider);
     final printerState = ref.watch(printerProvider);
 
-    if (session == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text('CONFIGURAÇÕES', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-        ),
-        body: StatefulBuilder(
-          builder: (context, setLocalState) {
-            final pinController = TextEditingController();
-            String errorMessage = '';
-
-            return Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.surfaceLight),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Icon(Icons.lock_outline, size: 64, color: AppColors.neonGreen),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Acesso Restrito',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMain, fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Você está navegando como visitante. Insira seu código PIN para liberar o acesso total ao sistema e salvar comissões/vendas.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5),
-                        ),
-                        const SizedBox(height: 28),
-                        TextField(
-                          controller: pinController,
-                          keyboardType: TextInputType.number,
-                          obscureText: true,
-                          maxLength: 4,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textMain, fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
-                            hintText: '••••',
-                            hintStyle: TextStyle(color: AppColors.textMuted),
-                            counterText: '',
-                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
-                            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.neonGreen)),
-                          ),
-                          onChanged: (val) async {
-                            if (val.length == 4) {
-                              final success = await ref.read(authProvider.notifier).loginByPin(val);
-                              if (!success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('PIN INVÁLIDO_'),
-                                    backgroundColor: AppColors.danger,
-                                  ),
-                                );
-                                pinController.clear();
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
+    if (session == null) return const Center(child: CircularProgressIndicator());
+    final isGuest = session.role == UserRole.guest;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -230,53 +149,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               _buildSectionHeader('Controle de Acesso (RBAC)'),
               
-              // Role Selection
-              ListTile(
-                title: const Text(
-                  'Perfil / Cargo de Usuário',
-                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  'Nome: ${session.name}\nCargo: ${session.role.name.toUpperCase()}',
-                  style: const TextStyle(color: AppColors.textMuted),
-                ),
-                trailing: DropdownButton<UserRole>(
-                  value: session.role,
-                  dropdownColor: AppColors.surfaceLight,
-                  style: const TextStyle(color: AppColors.textMain),
-                  underline: Container(),
-                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.neonGreen),
-                  onChanged: (UserRole? newRole) {
-                    if (newRole != null) {
-                      ref.read(authProvider.notifier).changeRole(newRole);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Cargo alterado para ${newRole.name.toUpperCase()}!',
-                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              if (isGuest) ...[
+                ListTile(
+                  title: const Text(
+                    'Fazer Login para Backup na Nuvem',
+                    style: TextStyle(color: AppColors.neonGreen, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'Você está navegando localmente. Faça login para habilitar sincronização.',
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                  trailing: const Icon(Icons.cloud_upload_outlined, color: AppColors.neonGreen),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        final pinController = TextEditingController();
+                        return AlertDialog(
+                          backgroundColor: AppColors.surface,
+                          title: const Text('Identifique-se', style: TextStyle(color: AppColors.textMain)),
+                          content: TextField(
+                            controller: pinController,
+                            keyboardType: TextInputType.number,
+                            obscureText: true,
+                            maxLength: 4,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.textMain, fontSize: 24, letterSpacing: 8),
+                            decoration: const InputDecoration(
+                              hintText: '••••',
+                              counterText: '',
+                            ),
+                            onChanged: (val) async {
+                              if (val.length == 4) {
+                                final success = await ref.read(authProvider.notifier).loginByPin(val);
+                                if (success) {
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                } else {
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('PIN inválido'), backgroundColor: AppColors.danger),
+                                    );
+                                    pinController.clear();
+                                  }
+                                }
+                              }
+                            },
                           ),
-                          backgroundColor: AppColors.neonGreen,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                        );
+                      },
+                    );
                   },
-                  items: const [
-                    DropdownMenuItem(
-                      value: UserRole.admin,
-                      child: Text('Administrador'),
-                    ),
-                    DropdownMenuItem(
-                      value: UserRole.waiter,
-                      child: Text('Garçom'),
-                    ),
-                    DropdownMenuItem(
-                      value: UserRole.chef,
-                      child: Text('Cozinheiro'),
-                    ),
-                  ],
                 ),
-              ),
+              ] else ...[
+                // Role Selection
+                ListTile(
+                  title: const Text(
+                    'Perfil / Cargo de Usuário',
+                    style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'Nome: ${session.name}\nCargo: ${session.role.name.toUpperCase()}',
+                    style: const TextStyle(color: AppColors.textMuted),
+                  ),
+                  trailing: DropdownButton<UserRole>(
+                    value: session.role,
+                    dropdownColor: AppColors.surfaceLight,
+                    style: const TextStyle(color: AppColors.textMain),
+                    underline: Container(),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.neonGreen),
+                    onChanged: (UserRole? newRole) {
+                      if (newRole != null) {
+                        ref.read(authProvider.notifier).changeRole(newRole);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Cargo alterado para ${newRole.name.toUpperCase()}!',
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            ),
+                            backgroundColor: AppColors.neonGreen,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    items: const [
+                      DropdownMenuItem(
+                        value: UserRole.admin,
+                        child: Text('Administrador'),
+                      ),
+                      DropdownMenuItem(
+                        value: UserRole.waiter,
+                        child: Text('Garçom'),
+                      ),
+                      DropdownMenuItem(
+                        value: UserRole.chef,
+                        child: Text('Cozinheiro'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const Divider(color: AppColors.surfaceLight),
 
@@ -310,63 +282,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               
               const Divider(color: AppColors.surfaceLight),
               
-              _buildSectionHeader('Sincronização & Dados'),
+              if (!isGuest) ...[
+                _buildSectionHeader('Sincronização & Dados'),
 
-              // Simulated Connectivity Switch
-              SwitchListTile.adaptive(
-                title: const Text(
-                  'Modo Conectado (Online)',
-                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                // Simulated Connectivity Switch
+                SwitchListTile.adaptive(
+                  title: const Text(
+                    'Modo Conectado (Online)',
+                    style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    syncState.isOnline
+                        ? 'Conexão ativa com o servidor Go'
+                        : 'Modo Offline (eventos acumulando no Outbox)',
+                    style: const TextStyle(color: AppColors.textMuted),
+                  ),
+                  value: syncState.isOnline,
+                  activeThumbColor: AppColors.neonGreen,
+                  activeTrackColor: AppColors.neonGreen.withValues(alpha: 0.2),
+                  onChanged: (bool value) {
+                    ref.read(syncProvider.notifier).toggleConnectivity();
+                  },
                 ),
-                subtitle: Text(
-                  syncState.isOnline
-                      ? 'Conexão ativa com o servidor Go'
-                      : 'Modo Offline (eventos acumulando no Outbox)',
-                  style: const TextStyle(color: AppColors.textMuted),
+                
+                // Sync Status
+                ListTile(
+                  title: const Text(
+                    'Fila de Sincronização (Outbox)',
+                    style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Eventos pendentes: ${syncState.pendingCount}',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        syncState.lastSyncedTime != null
+                            ? 'Última sincronização: ${_formatTime(syncState.lastSyncedTime!)}'
+                            : 'Última sincronização: Nunca',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  trailing: _buildSyncStatusBadge(syncState),
+                  onTap: syncState.isOnline && syncState.pendingCount > 0 && !syncState.isSyncing
+                      ? () {
+                          ref.read(syncProvider.notifier).triggerManualSync();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Iniciando sincronização forçada...'),
+                              backgroundColor: AppColors.surfaceLight,
+                            ),
+                          );
+                        }
+                      : null,
                 ),
-                value: syncState.isOnline,
-                activeThumbColor: AppColors.neonGreen,
-                activeTrackColor: AppColors.neonGreen.withValues(alpha: 0.2),
-                onChanged: (bool value) {
-                  ref.read(syncProvider.notifier).toggleConnectivity();
-                },
-              ),
-              
-              // Sync Status
-              ListTile(
-                title: const Text(
-                  'Fila de Sincronização (Outbox)',
-                  style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w600),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Eventos pendentes: ${syncState.pendingCount}',
-                      style: const TextStyle(color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      syncState.lastSyncedTime != null
-                          ? 'Última sincronização: ${_formatTime(syncState.lastSyncedTime!)}'
-                          : 'Última sincronização: Nunca',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                    ),
-                  ],
-                ),
-                trailing: _buildSyncStatusBadge(syncState),
-                onTap: syncState.isOnline && syncState.pendingCount > 0 && !syncState.isSyncing
-                    ? () {
-                        ref.read(syncProvider.notifier).triggerManualSync();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Iniciando sincronização forçada...'),
-                            backgroundColor: AppColors.surfaceLight,
-                          ),
-                        );
-                      }
-                    : null,
-              ),
+                const Divider(color: AppColors.surfaceLight),
+              ],
               
               // Clear Cache
               ListTile(

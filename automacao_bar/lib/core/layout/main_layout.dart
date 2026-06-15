@@ -106,26 +106,34 @@ class MainLayout extends ConsumerWidget {
               }
               Navigator.pop(context);
 
-              // Auto-insert table to database if it does not exist
-              final tableRepo = ref.read(tableRepositoryProvider);
-              final tablesList = await tableRepo.watchTables().first;
-              final exists = tablesList.any((t) => t.number == number);
-              if (!exists) {
-                await tableRepo.insertTable(
-                  RestaurantTable(
-                    id: const Uuid().v7(),
-                    number: number,
-                    status: 'livre',
-                    x: 120.0,
-                    y: 120.0,
-                    capacity: 4,
-                    updatedAt: DateTime.now().millisecondsSinceEpoch,
-                  ),
-                );
-              }
+              try {
+                final tableRepo = ref.read(tableRepositoryProvider);
+                final tablesList = await tableRepo.watchTables().first;
+                final exists = tablesList.any((t) => t.number == number);
+                if (!exists) {
+                  await tableRepo.insertTable(
+                    RestaurantTable(
+                      id: const Uuid().v7(),
+                      number: number,
+                      status: 'livre',
+                      x: 120.0,
+                      y: 120.0,
+                      capacity: 4,
+                      updatedAt: DateTime.now().millisecondsSinceEpoch,
+                    ),
+                  );
+                }
 
-              // Navigate
-              context.push('/table-details?table=$number');
+                if (context.mounted) {
+                  context.push('/table-details?table=$number');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao criar comanda: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
             },
             child: const Text('Criar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
           ),
@@ -212,24 +220,34 @@ class MainLayout extends ConsumerWidget {
                 }
                 Navigator.pop(context);
 
-                final db = ref.read(databaseProvider);
-                await db.into(db.users).insert(
-                  User(
-                    id: const Uuid().v7(),
-                    name: name,
-                    pinHash: pin,
-                    role: selectedRole.name,
-                    isActive: true,
-                    updatedAt: DateTime.now().millisecondsSinceEpoch,
-                  ),
-                );
+                try {
+                  final db = ref.read(databaseProvider);
+                  await db.into(db.users).insert(
+                    User(
+                      id: const Uuid().v7(),
+                      name: name,
+                      pinHash: pin,
+                      role: selectedRole.name,
+                      isActive: true,
+                      updatedAt: DateTime.now().millisecondsSinceEpoch,
+                    ),
+                  );
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Usuário $name cadastrado com sucesso!'),
-                    backgroundColor: theme_colors.AppColors.neonGreen,
-                  ),
-                );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Usuário $name cadastrado com sucesso!'),
+                        backgroundColor: theme_colors.AppColors.neonGreen,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro ao criar usuário: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
               },
               child: const Text('Cadastrar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
             ),
@@ -293,28 +311,38 @@ class MainLayout extends ConsumerWidget {
               }
               Navigator.pop(context);
 
-              final session = ref.read(authProvider);
-              if (session == null) return;
-              final cashNotifier = ref.read(cashRegisterProvider.notifier);
-              final cashState = ref.read(cashRegisterProvider);
+              try {
+                final session = ref.read(authProvider);
+                if (session == null) return;
+                final cashNotifier = ref.read(cashRegisterProvider.notifier);
+                final cashState = ref.read(cashRegisterProvider);
 
-              if (!cashState.isOpen) {
-                cashNotifier.openRegister(0.0, 'Abertura automática para despesa', session.name);
+                if (!cashState.isOpen) {
+                  cashNotifier.openRegister(0.0, 'Abertura automática para despesa', session.name);
+                }
+
+                cashNotifier.addTransaction(
+                  amount: amount,
+                  type: CashTransactionType.sangria,
+                  reason: reason,
+                  user: session.name,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Despesa de R\$ ${amount.toStringAsFixed(2)} registrada com sucesso!'),
+                      backgroundColor: theme_colors.AppColors.neonGreen,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao registrar despesa: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
-
-              cashNotifier.addTransaction(
-                amount: amount,
-                type: CashTransactionType.sangria,
-                reason: reason,
-                user: session.name,
-              );
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Despesa de R\$ ${amount.toStringAsFixed(2)} registrada com sucesso!'),
-                  backgroundColor: theme_colors.AppColors.neonGreen,
-                ),
-              );
             },
             child: const Text('Registrar', style: TextStyle(color: theme_colors.AppColors.neonGreen, fontWeight: FontWeight.bold)),
           ),
@@ -331,8 +359,9 @@ class MainLayout extends ConsumerWidget {
     final isAdmin = userRole == UserRole.admin;
     final isCaixa = userRole == UserRole.caixa;
     final isWaiter = userRole == UserRole.waiter;
+    final isGuest = userRole == UserRole.guest;
     
-    final visibleItems = isAdmin ? _adminNavItems : _waiterNavItems;
+    final visibleItems = (isAdmin || isGuest) ? _adminNavItems : _waiterNavItems;
 
     // Determine current index
     final String location = GoRouterState.of(context).uri.toString();
@@ -349,7 +378,7 @@ class MainLayout extends ConsumerWidget {
 
     // Actions for the Central FAB based on Role
     List<PremiumSpeedDialAction> getSpeedDialActions() {
-      if (isAdmin) {
+      if (isAdmin || isGuest) {
         return [
           PremiumSpeedDialAction(
             icon: Icons.receipt,
@@ -398,7 +427,7 @@ class MainLayout extends ConsumerWidget {
           ),
         ],
       ),
-      drawer: isAdmin
+      drawer: (isAdmin || isGuest)
           ? Drawer(
               backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
               child: ListView(

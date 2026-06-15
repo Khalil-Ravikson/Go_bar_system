@@ -474,7 +474,7 @@ class _CatalogManagementScreenState extends ConsumerState<CatalogManagementScree
               }
             }
 
-            final suggestedPrice = totalCost * 3.0; // 3.0x markup
+            final suggestedPrice = totalCost * 2.5; // 2.5x markup (150% margem)
 
             return AnimatedPadding(
               duration: const Duration(milliseconds: 100),
@@ -564,7 +564,7 @@ class _CatalogManagementScreenState extends ConsumerState<CatalogManagementScree
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Preço Sugerido (3x custo):', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                            const Text('Preço Sugerido (Margem 150%):', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                             Text(
                               'R\$ ${suggestedPrice.toStringAsFixed(2)}',
                               style: GoogleFonts.robotoMono(color: AppColors.neonGreen, fontWeight: FontWeight.bold, fontSize: 14),

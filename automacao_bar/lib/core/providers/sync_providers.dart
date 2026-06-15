@@ -17,5 +17,6 @@ final remoteDatabaseClientProvider = Provider<IRemoteDatabaseClient>((ref) {
 final syncManagerProvider = Provider<SyncManager>((ref) {
   final db = ref.watch(databaseProvider);
   final remoteClient = ref.watch(remoteDatabaseClientProvider);
-  return SyncManager(db, remoteClient);
+  final isGuest = ref.watch(authProvider) == null;
+  return SyncManager(db, remoteClient, isGuest);
 });

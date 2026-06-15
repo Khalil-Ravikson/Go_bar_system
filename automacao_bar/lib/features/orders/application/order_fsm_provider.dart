@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/repository_providers.dart';
+import '../../../core/database/database_provider.dart';
 import '../../tables/application/table_fsm_provider.dart';
 
 class OrderFsmNotifier extends Notifier<void> {
@@ -52,11 +53,15 @@ class OrderFsmNotifier extends Notifier<void> {
     required RestaurantTable table,
   }) async {
     final orderRepo = ref.read(orderRepositoryProvider);
+    final inventoryDao = ref.read(inventoryDaoProvider);
 
     // 1. Fechar comanda no SQLite
     await orderRepo.closeOrder(orderId);
+    
+    // 2. Dar baixa automática nos ingredientes das receitas
+    await inventoryDao.deductStockForOrder(orderId);
 
-    // 2. Liberar mesa na máquina de estados (FSM)
+    // 3. Liberar mesa na máquina de estados (FSM)
     await ref.read(tableFsmProvider.notifier).releaseTable(table);
   }
 }

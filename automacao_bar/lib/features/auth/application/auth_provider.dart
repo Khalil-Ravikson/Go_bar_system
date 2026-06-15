@@ -6,6 +6,7 @@ enum UserRole {
   waiter,
   chef,
   caixa,
+  guest,
 }
 
 class UserSession {
@@ -35,8 +36,12 @@ class UserSession {
 class AuthNotifier extends Notifier<UserSession?> {
   @override
   UserSession? build() {
-    // Starts unauthenticated (null) to force simple login on boot
-    return null;
+    // Starts as Guest by default
+    return const UserSession(
+      name: 'Visitante',
+      role: UserRole.guest,
+      token: 'local-only',
+    );
   }
 
   Future<bool> login(String name, String pin) async {
@@ -82,7 +87,11 @@ class AuthNotifier extends Notifier<UserSession?> {
   }
 
   void logout() {
-    state = null;
+    state = const UserSession(
+      name: 'Visitante',
+      role: UserRole.guest,
+      token: 'local-only',
+    );
   }
 
   void changeRole(UserRole newRole) {

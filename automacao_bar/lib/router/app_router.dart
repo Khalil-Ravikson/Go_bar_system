@@ -29,7 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
 
   String getInitialRoute(UserSession? session) {
-    if (session == null) return '/home/pdv';
+    if (session == null || session.role == UserRole.guest) return '/home/dashboard'; // User requested Dashboard or Pos. Let's do /home/dashboard or /home/pdv
     switch (session.role) {
       case UserRole.admin:
         return '/home/dashboard';
@@ -38,6 +38,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/home/pdv';
       case UserRole.chef:
         return '/kds';
+      case UserRole.guest:
+        return '/home/dashboard';
     }
   }
 
@@ -50,17 +52,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       final session = ref.read(authProvider);
       final location = state.uri.toString();
       
-      // If not logged in, guests can visit public paths (/login, /setup, /home/pdv, /table-details, /home/config)
-      if (session == null) {
+      // If not logged in, guests can visit public paths (/login, /setup, /home/pdv, /table-details, /home/config, /home/dashboard)
+      if (session == null || session.role == UserRole.guest) {
         if (location == '/login' ||
             location == '/setup' ||
             location.startsWith('/cadastro') ||
             location.startsWith('/home/pdv') ||
+            location.startsWith('/home/dashboard') ||
             location.startsWith('/table-details') ||
             location.startsWith('/home/config')) {
           return null;
         }
-        return '/home/pdv';
+        return '/home/dashboard';
       }
       
       // If logged in, prevent going to login page
@@ -78,8 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final role = session.role;
 
       // Guards for Admin/Dashboard/Management and restricted paths (/usuarios, /cadastro)
-      if ((location.startsWith('/home/dashboard') || 
-           location.startsWith('/drawer') ||
+      if ((location.startsWith('/drawer') ||
            location.startsWith('/usuarios') ||
            location.startsWith('/cadastro')) && role != UserRole.admin) {
         return '/sem-permissao';

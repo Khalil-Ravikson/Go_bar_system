@@ -7,10 +7,13 @@ import 'remote_database_client.dart';
 class SyncManager {
   final AppDatabase _db;
   final IRemoteDatabaseClient _remoteClient;
+  final bool _isGuest;
 
-  SyncManager(this._db, this._remoteClient);
+  SyncManager(this._db, this._remoteClient, [this._isGuest = false]);
 
   Future<void> syncPendingQueue() async {
+    if (_isGuest) return;
+
     // 1. Fetch pending records from SyncQueue
     final pendingItems = await (_db.select(_db.syncQueue)
           ..where((tbl) => tbl.syncStatus.equals(SyncStatus.pending.name)))

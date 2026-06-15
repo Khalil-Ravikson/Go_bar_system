@@ -670,11 +670,22 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
                       updatedAt: DateTime.now().millisecondsSinceEpoch,
                     );
 
-                    final dao = ref.read(inventoryDaoProvider);
-                    await dao.insertStockItem(item);
-                    
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
+                    try {
+                      final dao = ref.read(inventoryDaoProvider);
+                      await dao.insertStockItem(item);
+                      
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Insumo cadastrado com sucesso!'), backgroundColor: AppColors.neonGreen),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erro ao cadastrar insumo: $e'), backgroundColor: AppColors.danger),
+                        );
+                      }
                     }
                   },
                   child: const Text('SALVAR', style: TextStyle(color: AppColors.neonGreen)),
@@ -779,15 +790,29 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
                               final qty = double.tryParse(entryController.text.replaceAll(',', '.')) ?? 0.0;
                               if (qty <= 0) return;
 
-                              final dao = ref.read(inventoryDaoProvider);
-                              await dao.addStockQuantity(item.id, qty);
-                              if (updateCostPrice) {
-                                final nCost = double.tryParse(costController.text.replaceAll(',', '.')) ?? item.costPrice;
-                                await dao.updateStockItemCost(item.id, nCost);
-                              }
-                              
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
+                              try {
+                                final dao = ref.read(inventoryDaoProvider);
+                                await dao.addStockQuantity(item.id, qty);
+                                if (updateCostPrice) {
+                                  final totalCompra = double.tryParse(costController.text.replaceAll(',', '.')) ?? 0.0;
+                                  if (totalCompra > 0) {
+                                    final nCost = totalCompra / qty;
+                                    await dao.updateStockItemCost(item.id, nCost);
+                                  }
+                                }
+                                
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Entrada registrada com sucesso!'), backgroundColor: AppColors.neonGreen),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erro ao registrar entrada: $e'), backgroundColor: AppColors.danger),
+                                  );
+                                }
                               }
                             },
                             child: Text('SALVAR', style: GoogleFonts.shareTechMono(fontWeight: FontWeight.bold)),
@@ -811,7 +836,7 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           style: const TextStyle(color: AppColors.textMain),
                           decoration: const InputDecoration(
-                            labelText: 'Novo Preço de Custo (R\$)',
+                            labelText: 'Valor Total da Compra (R\$)',
                             labelStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
                           ),
                         ),
@@ -870,15 +895,26 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
                             final qty = double.tryParse(wasteController.text.replaceAll(',', '.')) ?? 0.0;
                             if (qty <= 0) return;
 
-                            final dao = ref.read(inventoryDaoProvider);
-                            await dao.registerWaste(
-                              stockItemId: item.id,
-                              quantity: qty,
-                              reason: reasonController.text,
-                            );
+                            try {
+                              final dao = ref.read(inventoryDaoProvider);
+                              await dao.registerWaste(
+                                stockItemId: item.id,
+                                quantity: qty,
+                                reason: reasonController.text,
+                              );
 
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Perda registrada com sucesso!'), backgroundColor: AppColors.neonGreen),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro ao registrar perda: $e'), backgroundColor: AppColors.danger),
+                                );
+                              }
                             }
                           },
                           child: Text('DEDUZIR E REGISTRAR PERDA', style: GoogleFonts.shareTechMono(fontWeight: FontWeight.bold)),
